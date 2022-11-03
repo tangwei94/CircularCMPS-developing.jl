@@ -1,0 +1,148 @@
+"""
+    rrule(::typeof(tr), A::AbstractTensorMap)
+
+    rrule for `TensorKit.tr`.
+"""
+function ChainRulesCore.rrule(::typeof(tr), A::AbstractTensorMap)
+    fwd = tr(A)
+    function tr_pushback(f̄wd)
+        Ā = f̄wd * id(domain(A))
+        return NoTangent(), Ā
+    end 
+    return fwd, tr_pushback
+end
+
+"""
+    rrule(::typeof(adjoint), A::AbstractTensorMap)
+
+    rrule for adjoint.
+"""
+function ChainRulesCore.rrule(::typeof(adjoint), A::AbstractTensorMap)
+    function adjoint_pushback(f̄wd)
+        return NoTangent(), f̄wd'
+    end
+    return A', adjoint_pushback
+end
+
+@non_differentiable id(V::VectorSpace)
+@non_differentiable isomorphism(cod::VectorSpace, dom::VectorSpace)
+@non_differentiable domain(W::TensorKit.HomSpace)
+@non_differentiable domain(t::AbstractTensorMap)
+@non_differentiable domain(t::AbstractTensorMap, i)
+@non_differentiable codomain(W::TensorKit.HomSpace)
+@non_differentiable codomain(t::AbstractTensorMap)
+@non_differentiable codomain(t::AbstractTensorMap, i)
+
+"""
+    ChainRulesCore.rrule(::typeof(getfield), ψ::CircularCMPS, S::Symbol)
+
+    rrule for getfield.
+"""
+function ChainRulesCore.rrule(::typeof(getfield), ψ::CircularCMPS, S::Symbol)
+    # TODO. doesn't work. zygote doesn't call this function. to fix.
+    fwd = getfield(ψ, S)
+    Q0 = zero(ψ.Q)
+    R0s = [zero(R) for R in ψ.Rs]
+    L = ψ.L
+    function getfield_pushback(f̄wd)
+        if S == :Q 
+            return NoTangent(), CircularCMPS(f̄wd, R0s, L), NoTangent()
+        elseif S == :Rs 
+            return NoTangent(), CircularCMPS(Q0, f̄wd, L), NoTangent()
+        else
+            return NoTangent(), NoTangent(), NoTangent()
+        end
+    end 
+    return fwd, getfield_pushback
+end
+
+"""
+    ChainRulesCore.rrule(::typeof(get_matrices), ψ::CircularCMPS)
+
+    rrule for get_matrices.
+"""
+function ChainRulesCore.rrule(::typeof(get_matrices), ψ::CircularCMPS)
+    fwd = get_matrices(ψ)
+    Q0 = zero(ψ.Q)
+    R0s = [zero(R) for R in ψ.Rs]
+    L = ψ.L
+    function get_matrices_pushback(f̄wd)
+        (Q̄, R̄s) = f̄wd
+        (Q̄ isa ZeroTangent) && (Q̄ = Q0)
+        (R̄s isa ZeroTangent) && (R̄s = R0s)
+        return NoTangent(), CircularCMPS(Q̄, R̄s, L)
+    end
+    return fwd, get_matrices_pushback
+end
+
+"""
+    rrule(::typeof(CircularCMPS), Q::MPSBondTensor, R::MPSTensor, L::Real)
+
+    rrule for the constructor of `cmps`.
+"""
+function ChainRulesCore.rrule(::typeof(CircularCMPS), Q::MPSBondTensor, R::MPSTensor, L::Real)
+    function cmps_pushback(f̄wd)
+        return NoTangent(), f̄wd.Q, f̄wd.R, Notangent()
+    end
+    return CircularCMPS(Q, R, L), cmps_pushback
+end
+
+"""
+    rrule(::typeof(K_mat), phi::cmps, psi::cmps) 
+
+    The reverse rule for function K_mat.  
+"""
+function ChainRulesCore.rrule(::typeof(K_mat), ϕ::CircularCMPS, ψ::CircularCMPS)  
+    Id_ψ, Id_ϕ = id(space(ψ)), id(space(ϕ)) 
+    fwd = K_mat(ϕ, ψ) 
+
+    function K_mat_pushback(f̄wd)
+        f̄wd = K_permute(f̄wd)
+        @tensor Q̄_ϕ[-1; -2] := conj(f̄wd[1, -2, 1, -1])
+        @tensor Q̄_ψ[-1; -2] := f̄wd[-1, 1, -2, 1]
+        R̄s_ψ, R̄s_ϕ = MPSBondTensor[], MPSBondTensor[]
+        for (Rψ, Rϕ) in zip(ψ.Rs, ϕ.Rs)
+            @tensor R̄ϕ[-1; -2] := conj(f̄wd[2, -2, 1, -1] * Rψ'[1, 2])
+            @tensor R̄ψ[-1; -2] := f̄wd[-1, 2, -2, 1] * Rϕ[1, 2]
+            push!(R̄s_ψ, R̄ψ)
+            push!(R̄s_ϕ, R̄ϕ)
+        end
+        ϕ̄ = CircularCMPS(Q̄_ϕ, R̄s_ϕ, ϕ.L)
+        ψ̄ = CircularCMPS(Q̄_ψ, R̄s_ψ, ψ.L)
+        return NoTangent(), ϕ̄, ψ̄
+    end
+    return fwd, K_mat_pushback
+end
+
+"""
+    rrule(::typeof(finite_env), t::TensorMap{ComplexSpace}, L::Real)
+
+    Backward rule for `finite_env`.
+    See https://math.stackexchange.com/a/3868894/488003 and https://doi.org/10.1006/aama.1995.1017 for the gradient of exp(t)
+"""
+function ChainRulesCore.rrule(::typeof(finite_env), K::TensorMap{ComplexSpace}, L::Real)
+    expK, ln_norm = finite_env(K, L)
+
+    function finite_env_pushback(f̄wd)
+        ēxpK, l̄n_norm = f̄wd
+        
+        xs, ws = gausslegendre(40)
+        xs = (xs .+ 1) .* (L/2)
+        ws = ws .* (L/2)
+
+        IK = id(domain(K))
+        Knm = K - (ln_norm / L) * IK
+
+        K̄ = zero(K)
+        for (xᵢ, wᵢ) in zip(xs, ws)
+            K1 = exponentiate(x -> Knm' * x, xᵢ, ēxpK)[1]
+            K2 = exponentiate(x -> x * Knm', L - xᵢ, K1)[1]
+            K̄ = K̄ + wᵢ * K2
+        end
+        K̄ = K̄ - L * tr(ēxpK * expK') * expK'
+
+        return NoTangent(), K̄, NoTangent()
+    end
+
+    return (expK, ln_norm), finite_env_pushback
+end
