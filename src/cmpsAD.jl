@@ -121,28 +121,69 @@ end
     See https://math.stackexchange.com/a/3868894/488003 and https://doi.org/10.1006/aama.1995.1017 for the gradient of exp(t)
 """
 function ChainRulesCore.rrule(::typeof(finite_env), K::TensorMap{ComplexSpace}, L::Real)
-    expK, ln_norm = finite_env(K, L)
+    W, UR = eig(K)
+    UL = inv(UR)
+    Ws = []
+
+    if W.data isa Matrix 
+        Ws = diag(W.data)
+    elseif W.data isa TensorKit.SortedVectorDict
+        Ws = vcat([diag(values) for (_, values) in W.data]...)
+    end
+    Wmax = maximum(real.(Ws))
+    ln_of_norm = Wmax * L + log(sum(exp.(Ws .* L .- Wmax * L)))
+
+    W = W - (ln_of_norm / L) * id(_firstspace(W)) 
+    expK = UR * exp(W * L) * UL
+    
+    Ws = Ws .- ln_of_norm / L
 
     function finite_env_pushback(f̄wd)
-        ēxpK, l̄n_norm = f̄wd
-        
-        xs, ws = gausslegendre(40)
-        xs = (xs .+ 1) .* (L/2)
-        ws = ws .* (L/2)
-
-        IK = id(domain(K))
-        Knm = K - (ln_norm / L) * IK
-
-        K̄ = zero(K)
-        for (xᵢ, wᵢ) in zip(xs, ws)
-            K1 = exponentiate(x -> Knm' * x, xᵢ, ēxpK)[1]
-            K2 = exponentiate(x -> x * Knm', L - xᵢ, K1)[1]
-            K̄ = K̄ + wᵢ * K2
+        ēxpK, l̄n_norm = f̄wd # TODO. now only include ēxpK. add ln_norm pushback 
+        if W.data isa TensorKit.SortedVectorDict
+            # TODO. symmetric tensor?
+            error("symmetric tensor. not implemented")
         end
-        K̄ = K̄ - L * tr(ēxpK * expK') * expK'
+        function coeff(a::Number, b::Number) 
+            if a ≈ b
+                return L*exp(a*L)
+            else 
+                return (exp(a*L) - exp(b*L)) / (a - b)
+            end
+        end
+        M = UR' * ēxpK * UL'
+        M1 = similar(M)
+        copyto!(M1.data, M.data .* coeff.(Ws', conj.(Ws)))
+        K̄ = UL' * M1 * UR' - L * tr(ēxpK * expK') * expK'
 
         return NoTangent(), K̄, NoTangent()
-    end
-
-    return (expK, ln_norm), finite_env_pushback
+    end 
+    return (expK, ln_of_norm), finite_env_pushback
 end
+#function ChainRulesCore.rrule(::typeof(finite_env), K::TensorMap{ComplexSpace}, L::Real)
+#    # TODO. gaussian quadrature. not efficient. parallelize?
+#    expK, ln_norm = finite_env(K, L)
+#
+#    function finite_env_pushback(f̄wd)
+#        ēxpK, l̄n_norm = f̄wd
+#        
+#        xs, ws = gausslegendre(80)
+#        xs = (xs .+ 1) .* (L/2)
+#        ws = ws .* (L/2)
+#
+#        IK = id(domain(K))
+#        Knm = K - (ln_norm / L) * IK
+#
+#        K̄ = zero(K)
+#        for (xᵢ, wᵢ) in zip(xs, ws)
+#            K1 = exponentiate(x -> Knm' * x, xᵢ, ēxpK)[1]
+#            K2 = exponentiate(x -> x * Knm', L - xᵢ, K1)[1]
+#            K̄ = K̄ + wᵢ * K2
+#        end
+#        K̄ = K̄ - L * tr(ēxpK * expK') * expK'
+#
+#        return NoTangent(), K̄, NoTangent()
+#    end
+#
+#    return (expK, ln_norm), finite_env_pushback
+#end

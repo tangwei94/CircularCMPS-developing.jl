@@ -1,7 +1,8 @@
 # TODO. no need to include L in most of cases.
 # consider redefine CircularCMPS -> cMPSdata, and remove the field :L
+# consider define abstract type: CMPS data, which contain different strucutres 
 
-struct CircularCMPS 
+mutable struct CircularCMPS 
     Q::MPSBondTensor
     Rs::Vector{<:MPSBondTensor}
     L::Real
@@ -43,6 +44,10 @@ end
 @inline get_χ(ψ::CircularCMPS) = dim(_firstspace(ψ.Q))
 @inline get_d(ψ::CircularCMPS) = length(ψ.Rs)
 TensorKit.space(ψ::CircularCMPS) = _firstspace(ψ.Q)
+#function Base.iterate(ψ::CircularCMPS, i=1)
+    #data = [ψ.Q, ψ.Rs]
+    #(i > length(data)) ? nothing : (data[i],i+1)
+#end
 
 get_matrices(ψ::CircularCMPS) = (ψ.Q, ψ.Rs)
 
@@ -213,8 +218,8 @@ end
     ```
     This function will calculate exp(t) / tr(exp(t)) by diagonalizing `t`.
 """
-function finite_env(t::TensorMap{ComplexSpace}, L::Real)
-    W, UR = eig(t)
+function finite_env(K::TensorMap{ComplexSpace}, L::Real)
+    W, UR = eig(K)
     UL = inv(UR)
     Ws = []
 
