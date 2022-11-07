@@ -23,10 +23,6 @@ end
 ψ = left_canonical(ψ)[2]
 E, ∂ψ = fgE(ψ)
 
-# TODO. modify finalize!. check cmps norm after each step.
-# TODO. compare with periodic gauge result. 
-# TODO. in periodic gauge: everything projected out?, check the inner(g, d) relation. 
-
 function inner(ψ, ψ1::CircularCMPS, ψ2::CircularCMPS)
     return real(dot(ψ1.Q, ψ2.Q) + sum(dot.(ψ1.Rs, ψ2.Rs))) #TODO. clarify the cases with or withou factor of 2. depends on how to define the complex gradient
 end
