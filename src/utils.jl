@@ -36,3 +36,14 @@ function K_otimes(A::MPSBondTensor, B::MPSBondTensor)
     @tensor Abar_otimes_B[-1, -2; -3, -4] := A'[-3, -1] * B[-2, -4]
     return Abar_otimes_B
 end
+
+function herm_reg_inv(A::MPSBondTensor, δ::Real)
+    # A is Hermitian up to a phase
+
+    _, S, V = svd(A)
+    Id = id(_firstspace(S))
+    Ainv = V' * (inv(S + δ*Id)) * V
+
+    return Ainv
+
+end
