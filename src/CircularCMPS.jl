@@ -3,8 +3,8 @@
 using Revise
 using LinearAlgebra
 using TensorKit, TensorOperations, KrylovKit, TensorKitAD
-using ChainRules, ChainRulesCore
-using Zygote
+using ChainRules, ChainRulesCore, Zygote
+using OptimKit 
 using FastGaussQuadrature
 # Write your package code here.
 
