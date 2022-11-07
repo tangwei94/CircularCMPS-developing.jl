@@ -1,4 +1,4 @@
-χ, d, L = 4, 2, 8
+χ, d, L = 4, 1, 8
 ϕ = CircularCMPS(rand, χ, d, L)
 
 @test get_χ(ϕ) == χ
@@ -47,7 +47,7 @@ IK = id(domain(Kmat))
 expK, C = finite_env(Kmat, L)
 
 Kmat0 = Kmat - (C/L) * IK
-@test norm(exponentiate(x -> Kmat0 * x, L, IK)[1] - expK) < 1e-12
+@test norm(exponentiate(x -> Kmat0 * x, L, IK)[1] - expK) / χ^2 < 1e-12
 
 _, nm = finite_env(K_mat(ψ, ψ), ψ.L)
 ψ1 = rescale(ψ, -real(nm))
@@ -71,10 +71,6 @@ _, nm1 = finite_env(K_mat(ψ1, ψ1), ψ1.L)
 #    
 #    return NoTangent(), t̄, NoTangent()
 #end 
-
-OH = kinetic(ψ) + point_interaction(ψ) - particle_density(ψ)
-expK, _ = finite_env(K_mat(ψ, ψ), ψ.L)
-real(tr(expK * OH))
 
 function fE(ψ::CircularCMPS)
     OH = kinetic(ψ) + point_interaction(ψ) - particle_density(ψ)
@@ -100,3 +96,24 @@ end
 dQ, dRs = get_matrices(dψ)
 
 real(dot(dQ, Qr) + sum(dot.(dRs, Rrs)))
+
+
+
+
+
+ϕ = ψ
+E, gϕ = fgE(ϕ)
+dϕ = precondition(ϕ, gϕ)
+α = 1e-3
+Δα = 1e-6
+ϕ0, _ = retract(ϕ, dϕ, α)
+ϕ1, _ = retract(ϕ, dϕ, α-Δα)
+ϕ2, _ = retract(ϕ, dϕ, α+Δα)
+
+E0, gϕ0 = fgE(ϕ0)
+E1, gϕ1 = fgE(ϕ1)
+E2, gϕ2 = fgE(ϕ2)
+
+(E2 - E1) / (2*Δα)
+
+inner(ϕ0, gϕ0, dϕ)
