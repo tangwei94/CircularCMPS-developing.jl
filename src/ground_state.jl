@@ -1,52 +1,52 @@
 # TODO. construct a type for Hamiltonians
 
-function lieb_liniger_ground_state(c::Real, μ::Real, L::Real, ψ0::Union{CircularCMPS, Nothing}=nothing)
-    function fE(ψ::CircularCMPS)
+function lieb_liniger_ground_state(c::Real, μ::Real, L::Real, ψ0::Union{CMPSData, Nothing}=nothing)
+    function fE(ψ::CMPSData)
         OH = kinetic(ψ) + c*point_interaction(ψ) - μ * particle_density(ψ)
         expK, _ = finite_env(K_mat(ψ, ψ), L)
         return real(tr(expK * OH))
     end
 
     # TODO. implement gradientcheck: check inner(d, g) = gradient with respect to alpha obtained from finite difference.
-    function fgE(ψ::CircularCMPS)
+    function fgE(ψ::CMPSData)
         E = fE(ψ)
         ∂ψ = fE'(ψ) 
         dQ = zero(∂ψ.Q) #- sum(ψ.Rs' .* ∂ψ.Rs)
         dRs = ∂ψ.Rs .- ψ.Rs .* Ref(∂ψ.Q) #the second term makes sure it is a true gradient! 
 
-        return E, CircularCMPS(dQ, dRs, L)
+        return E, CMPSData(dQ, dRs)
     end
 
-    function inner(ψ, ψ1::CircularCMPS, ψ2::CircularCMPS)
+    function inner(ψ, ψ1::CMPSData, ψ2::CMPSData)
         return real(dot(ψ1.Q, ψ2.Q) + sum(dot.(ψ1.Rs, ψ2.Rs))) #TODO. clarify the cases with or withou factor of 2. depends on how to define the complex gradient
     end
 
-    function retract(ψ::CircularCMPS, dψ::CircularCMPS, α::Real)
+    function retract(ψ::CMPSData, dψ::CMPSData, α::Real)
         Rs = ψ.Rs .+ α .* dψ.Rs 
         Q = ψ.Q - α * sum(ψ.Rs' .* dψ.Rs) - 0.5 * α^2 * sum(dψ.Rs' .* dψ.Rs)
-        ψ1 = CircularCMPS(Q, Rs, L)
+        ψ1 = CMPSData(Q, Rs)
         #ψ1 = left_canonical(ψ1)[2]
         return ψ1, dψ
     end
 
-    function scale!(dψ::CircularCMPS, α::Number)
+    function scale!(dψ::CMPSData, α::Number)
         dψ.Q = dψ.Q * α
         dψ.Rs .= dψ.Rs .* α
         return dψ
     end
 
-    function add!(dψ::CircularCMPS, dψ1::CircularCMPS, α::Number) 
+    function add!(dψ::CMPSData, dψ1::CMPSData, α::Number) 
         dψ.Q += dψ1.Q * α
         dψ.Rs .+= dψ1.Rs .* α
         return dψ
     end
 
     # only for comparison
-    #function no_precondition(ψ::CircularCMPS, dψ::CircularCMPS)
+    #function no_precondition(ψ::CMPSData, dψ::CMPSData)
     #    return dψ
     #end
 
-    function precondition(ψ::CircularCMPS, dψ::CircularCMPS)
+    function precondition(ψ::CMPSData, dψ::CMPSData)
         fK = transfer_matrix(ψ, ψ)
 
         # solve the fixed point equation
@@ -62,7 +62,7 @@ function lieb_liniger_ground_state(c::Real, μ::Real, L::Real, ψ0::Union{Circul
         Q = dψ.Q  
         Rs = dψ.Rs .* Ref(P)
 
-        return CircularCMPS(Q, Rs, ψ.L)
+        return CMPSData(Q, Rs)
     end
 
     transport!(v, x, d, α, xnew) = v
@@ -81,11 +81,11 @@ end
 
 c, μ, L = 1, 2, 16
 χ, d = 4, 1
-ψ = CircularCMPS(rand, χ, d, L)
+ψ = CMPSData(rand, χ, d)
 ψ1, E, grad, numfg, history = lieb_liniger_ground_state(c, μ, L, ψ)
 
-ψ2 = expand(ψ1, 8)
+ψ2 = expand(ψ1, 8, L)
 ψ2, E2, grad, numfg, history = lieb_liniger_ground_state(c, μ, L, ψ2)
 
-ψ3 = expand(ψ2, 12)
+ψ3 = expand(ψ2, 12, L)
 ψ3, E3, grad, numfg, history = lieb_liniger_ground_state(c, μ, L, ψ3)
