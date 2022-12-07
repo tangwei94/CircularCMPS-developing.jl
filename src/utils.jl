@@ -30,8 +30,6 @@ function K_permute_back(K::AbstractTensorMap{S, 2, 2}) where {S<:EuclideanSpace}
     return permute(K, (4, 1), (2, 3))
 end
 
-
-
 function K_otimes(A::MPSBondTensor, B::MPSBondTensor)
     @tensor Abar_otimes_B[-1, -2; -3, -4] := A'[-3, -1] * B[-2, -4]
     return Abar_otimes_B

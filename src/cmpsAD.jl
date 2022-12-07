@@ -34,21 +34,20 @@ end
 @non_differentiable codomain(t::AbstractTensorMap, i)
 
 """
-    ChainRulesCore.rrule(::typeof(getfield), ψ::CircularCMPS, S::Symbol)
+    ChainRulesCore.rrule(::typeof(getfield), ψ::CMPSData, S::Symbol)
 
     rrule for getfield.
 """
-function ChainRulesCore.rrule(::typeof(getfield), ψ::CircularCMPS, S::Symbol)
+function ChainRulesCore.rrule(::typeof(getfield), ψ::CMPSData, S::Symbol)
     # TODO. doesn't work. zygote doesn't call this function. to fix.
     fwd = getfield(ψ, S)
     Q0 = zero(ψ.Q)
     R0s = [zero(R) for R in ψ.Rs]
-    L = ψ.L
     function getfield_pushback(f̄wd)
         if S == :Q 
-            return NoTangent(), CircularCMPS(f̄wd, R0s, L), NoTangent()
+            return NoTangent(), CMPSData(f̄wd, R0s), NoTangent()
         elseif S == :Rs 
-            return NoTangent(), CircularCMPS(Q0, f̄wd, L), NoTangent()
+            return NoTangent(), CMPSData(Q0, f̄wd), NoTangent()
         else
             return NoTangent(), NoTangent(), NoTangent()
         end
@@ -57,34 +56,33 @@ function ChainRulesCore.rrule(::typeof(getfield), ψ::CircularCMPS, S::Symbol)
 end
 
 """
-    ChainRulesCore.rrule(::typeof(get_matrices), ψ::CircularCMPS)
+    ChainRulesCore.rrule(::typeof(get_matrices), ψ::CMPSData)
 
     rrule for get_matrices.
 """
-function ChainRulesCore.rrule(::typeof(get_matrices), ψ::CircularCMPS)
+function ChainRulesCore.rrule(::typeof(get_matrices), ψ::CMPSData)
     fwd = get_matrices(ψ)
     Q0 = zero(ψ.Q)
     R0s = [zero(R) for R in ψ.Rs]
-    L = ψ.L
     function get_matrices_pushback(f̄wd)
         (Q̄, R̄s) = f̄wd
         (Q̄ isa ZeroTangent) && (Q̄ = Q0)
         (R̄s isa ZeroTangent) && (R̄s = R0s)
-        return NoTangent(), CircularCMPS(Q̄, R̄s, L)
+        return NoTangent(), CMPSData(Q̄, R̄s)
     end
     return fwd, get_matrices_pushback
 end
 
 """
-    rrule(::typeof(CircularCMPS), Q::MPSBondTensor, R::MPSTensor, L::Real)
+    rrule(::typeof(CMPSData), Q::MPSBondTensor, R::MPSTensor, L::Real)
 
     rrule for the constructor of `cmps`.
 """
-function ChainRulesCore.rrule(::typeof(CircularCMPS), Q::MPSBondTensor, R::MPSTensor, L::Real)
+function ChainRulesCore.rrule(::typeof(CMPSData), Q::MPSBondTensor, R::MPSTensor)
     function cmps_pushback(f̄wd)
-        return NoTangent(), f̄wd.Q, f̄wd.R, Notangent()
+        return NoTangent(), f̄wd.Q, f̄wd.R
     end
-    return CircularCMPS(Q, R, L), cmps_pushback
+    return CMPSData(Q, R), cmps_pushback
 end
 
 """
@@ -92,7 +90,7 @@ end
 
     The reverse rule for function K_mat.  
 """
-function ChainRulesCore.rrule(::typeof(K_mat), ϕ::CircularCMPS, ψ::CircularCMPS)  
+function ChainRulesCore.rrule(::typeof(K_mat), ϕ::CMPSData, ψ::CMPSData)  
     Id_ψ, Id_ϕ = id(space(ψ)), id(space(ϕ)) 
     fwd = K_mat(ϕ, ψ) 
 
@@ -107,8 +105,8 @@ function ChainRulesCore.rrule(::typeof(K_mat), ϕ::CircularCMPS, ψ::CircularCMP
             push!(R̄s_ψ, R̄ψ)
             push!(R̄s_ϕ, R̄ϕ)
         end
-        ϕ̄ = CircularCMPS(Q̄_ϕ, R̄s_ϕ, ϕ.L)
-        ψ̄ = CircularCMPS(Q̄_ψ, R̄s_ψ, ψ.L)
+        ϕ̄ = CMPSData(Q̄_ϕ, R̄s_ϕ)
+        ψ̄ = CMPSData(Q̄_ψ, R̄s_ψ)
         return NoTangent(), ϕ̄, ψ̄
     end
     return fwd, K_mat_pushback
