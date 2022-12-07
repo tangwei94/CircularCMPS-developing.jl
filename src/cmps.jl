@@ -245,9 +245,5 @@ end
 """
 function rescale(ψ::CMPSData, lnα::Real, L::Real)
     Q = ψ.Q + (lnα / 2 / L) * id(domain(ψ.Q))
-    return CMPSData(Q, ψ.Rs, L)
+    return CMPSData(Q, ψ.Rs)
 end
-
-
-
-
