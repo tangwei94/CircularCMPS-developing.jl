@@ -5,7 +5,7 @@ using LinearAlgebra
 using TensorKit, TensorOperations, KrylovKit, TensorKitAD
 using ChainRules, ChainRulesCore, Zygote
 using OptimKit 
-using FastGaussQuadrature
+#using FastGaussQuadrature
 # Write your package code here.
 
 include("utils.jl");
