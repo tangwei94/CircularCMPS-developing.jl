@@ -4,7 +4,9 @@ using Revise
 using LinearAlgebra
 using TensorKit, TensorOperations, KrylovKit, TensorKitAD
 using ChainRules, ChainRulesCore, Zygote
-using OptimKit 
+using OptimKit
+using LoopVectorization 
+using Tullio
 #using FastGaussQuadrature
 # Write your package code here.
 
