@@ -21,6 +21,7 @@ ChainRulesCore = "1"
 FastGaussQuadrature = "0.5"
 Revise = "3"
 TensorOperations = "3"
+Tullio = "0.3"
 Zygote = "0.6"
 julia = "1"
 
