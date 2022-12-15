@@ -7,6 +7,7 @@ using ChainRules, ChainRulesCore, Zygote
 using OptimKit
 using LoopVectorization 
 using Tullio
+using JLD2
 #using FastGaussQuadrature
 # Write your package code here.
 

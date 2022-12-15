@@ -79,7 +79,7 @@ function lieb_liniger_ground_state(c::Real, μ::Real, L::Real, ψ0::Union{CMPSDa
 
 end
 
-c, μ, L = 1, 2, 16
+c, μ, L = 1, 2, 10
 χ, d = 4, 1
 ψ = CMPSData(rand, χ, d)
 ψ1, E, grad, numfg, history = lieb_liniger_ground_state(c, μ, L, ψ)

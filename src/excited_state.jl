@@ -44,7 +44,7 @@ function (C2::Coeff2)(A1::TensorMap{ComplexSpace}, A2::TensorMap{ComplexSpace})
     Ã1data = (C2.Uinv * A1 * C2.U).data 
     Ã2data = (C2.Uinv * A2 * C2.U).data 
 
-    @tullio result = C2.θs[i1, i2] * Ã1data[i1, i2] * Ã2data[i2, i1]
+    @tullio result = C2.θs[i2, i1] * Ã1data[i1, i2] * Ã2data[i2, i1]
     return result
 end
 
@@ -69,7 +69,7 @@ function (C3::Coeff3)(A1::TensorMap{ComplexSpace}, A2::TensorMap{ComplexSpace}, 
     Ã2data = (C3.Uinv * A2 * C3.U).data 
     Ã3data = (C3.Uinv * A3 * C3.U).data 
 
-    @tullio result = C3.θs[i1, i2, i3] * Ã1data[i1, i2] * Ã2data[i2, i3] * Ã3data[i3, i1] 
+    @tullio result = C3.θs[i2, i3, i1] * Ã1data[i1, i2] * Ã2data[i2, i3] * Ã3data[i3, i1] 
     return result
 end
 
@@ -130,9 +130,8 @@ function effective_N(ψ::CMPSData, p::Real, L::Real)
         for iy in 1:χ^2
             Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 1
             ϕY = ExcitationData(P, Y)
-
-            N_mat[ix, iy] = tr(expK * sum(K_otimes.(ϕX.Ws, ϕY.Ws))) +
-                C2(K_otimes(Id, ϕY.V) + sum(K_otimes.(ϕY.Ws, ψ.Rs)), K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs)))
+            N_mat[ix, iy] = tr(expK * sum(K_otimes.(ϕX.Ws, ϕY.Ws))) + 
+                C2(K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)), K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))) 
 
             Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 0
         end
@@ -279,7 +278,16 @@ function Kac_Moody_gen(ψ::CMPSData, pX::Real, pY::Real, L::Real)
 
 end
 
-effective_N(ψ3, 0, L)
-effective_H(ψ3, 0, L; c=1.0, μ=2.0)
-Kac_Moody_gen(ψ3, pi/L, L)
-Kac_Moody_gen(ψ3, pi/L, pi/L, L)
+# TODO. ψ has to be normalized. Why???
+_, α = finite_env(K_mat(ψ2, ψ2), L)
+ψ2 = rescale(ψ2, -real(α), L)
+
+N1 = effective_N(ψ2, 0, L)
+H1 = effective_H(ψ2, 0, L; c=1.0, μ=2.0)
+
+eigen(Hermitian(N1))
+
+# save data. 
+# solve general eigenvalue problem
+
+
