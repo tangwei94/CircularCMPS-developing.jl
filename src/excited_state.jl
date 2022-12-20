@@ -88,7 +88,7 @@ function ExcitationData(P::AbstractTensorMap, data::AbstractMatrix)
     return ExcitationData(V, Ws)
 end
 
-function gauge_fixing_map(ψ::CMPSData)
+function gauge_fixing_map(ψ::CMPSData, L::Real)
 
     χ = get_χ(ψ)
     d = get_d(ψ)
@@ -111,7 +111,7 @@ function gauge_fixing_map(ψ::CMPSData)
 end
 
 function effective_N(ψ::CMPSData, p::Real, L::Real)
-    P = gauge_fixing_map(ψ)
+    P = gauge_fixing_map(ψ, L)
     K = K_mat(ψ, ψ)
     expK, _ = finite_env(K, L)
 
@@ -122,7 +122,7 @@ function effective_N(ψ::CMPSData, p::Real, L::Real)
     Id = id(ℂ^χ)
     N_mat = zeros(ComplexF64, χ^2, χ^2)
 
-    C2 = Coeff2(K, p, L)
+    C2 = Coeff2(K, -p, L)
 
     for ix in 1:χ^2
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 1
@@ -132,8 +132,10 @@ function effective_N(ψ::CMPSData, p::Real, L::Real)
             ϕY = ExcitationData(P, Y)
             N_mat[ix, iy] = tr(expK * sum(K_otimes.(ϕX.Ws, ϕY.Ws))) + 
                 C2(K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)), K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))) 
-
             Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 0
+
+            ratio = (ix * χ^2 + iy) / χ^4
+            @printf "N_mat completed %.4f \r" ratio
         end
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 0
     end
@@ -141,7 +143,7 @@ function effective_N(ψ::CMPSData, p::Real, L::Real)
 end
 
 function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
-    P = gauge_fixing_map(ψ)
+    P = gauge_fixing_map(ψ, L)
     K = K_mat(ψ, ψ)
     expK, _ = finite_env(K, L)
 
@@ -192,14 +194,17 @@ function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
             H_mat[ix, iy] += C2z(op_Hψ, sum(K_otimes.(ϕX.Ws, ϕY.Ws))) 
             H_mat[ix, iy] += C2b(-μ * sum(K_otimes.(ψ.Rs, ϕY.Ws)) +
                                 sum(K_otimes.(QR_commutator, kinY)) +
-                                sum(K_otimes.(ψ.Rs .* ψ.Rs, ψ.Rs .* ϕY.Ws + ϕY.Ws .* ψ.Rs)), 
+                                c * sum(K_otimes.(ψ.Rs .* ψ.Rs, ψ.Rs .* ϕY.Ws + ϕY.Ws .* ψ.Rs)), 
                                 K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs)))
             H_mat[ix, iy] += C2a(-μ * sum(K_otimes.(ϕX.Ws, ψ.Rs)) +
                                 sum(K_otimes.(kinX, QR_commutator)) +
-                                sum(K_otimes.(ψ.Rs .* ϕX.Ws + ϕX.Ws .* ψ.Rs, ψ.Rs .* ψ.Rs)), 
+                                c * sum(K_otimes.(ψ.Rs .* ϕX.Ws + ϕX.Ws .* ψ.Rs, ψ.Rs .* ψ.Rs)), 
                                 K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)))
 
             Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 0
+
+            ratio = (ix * χ^2 + iy) / χ^4
+            @printf "H_mat completed %.4f \r" ratio
         end 
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 0
     end
@@ -207,7 +212,7 @@ function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
 end
 
 function Kac_Moody_gen(ψ::CMPSData, q::Real, L::Real)
-    P = gauge_fixing_map(ψ)
+    P = gauge_fixing_map(ψ, L)
     K = K_mat(ψ, ψ)
     Id = id(ℂ^get_χ(ψ))
     expK, _ = finite_env(K, L)
@@ -229,7 +234,7 @@ end
 
 function Kac_Moody_gen(ψ::CMPSData, pX::Real, pY::Real, L::Real)
 
-    P = gauge_fixing_map(ψ)
+    P = gauge_fixing_map(ψ, L)
     K = K_mat(ψ, ψ)
     expK, _ = finite_env(K, L)
 
@@ -278,14 +283,14 @@ function Kac_Moody_gen(ψ::CMPSData, pX::Real, pY::Real, L::Real)
 
 end
 
-# TODO. ψ has to be normalized. Why???
-_, α = finite_env(K_mat(ψ2, ψ2), L)
-ψ2 = rescale(ψ2, -real(α), L)
-
-N1 = effective_N(ψ2, 0, L)
-H1 = effective_H(ψ2, 0, L; c=1.0, μ=2.0)
-
-eigen(Hermitian(N1))
+## TODO. ψ has to be normalized. Why???
+#_, α = finite_env(K_mat(ψ2, ψ2), L)
+#ψ2 = rescale(ψ2, -real(α), L)
+#
+#N1 = effective_N(ψ2, 0, L)
+#H1 = effective_H(ψ2, 0, L; c=1.0, μ=2.0)
+#
+#eigen(Hermitian(N1))
 
 # save data. 
 # solve general eigenvalue problem
