@@ -173,7 +173,7 @@ N2, _ = size(history2)
 N3, _ = size(history3)
 Nmin = 100
 
-fig = Figure(backgroundcolor = :white, fontsize=18, resolution= (600, 600), fonts=(; regular=font2, math=font2))
+fig = Figure(backgroundcolor = :white, fontsize=18, resolution= (600, 600), fonts=(; regular=font2))
 gf = fig[1, 1] = GridLayout() 
 gl = fig[2, 1] = GridLayout()
 
