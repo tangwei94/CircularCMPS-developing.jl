@@ -127,17 +127,15 @@ function effective_N(ψ::CMPSData, p::Real, L::Real)
     for ix in 1:χ^2
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 1
         ϕX = ExcitationData(P, X)
-        for iy in 1:χ^2
+        Polyester.@batch for iy in 1:χ^2
             Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 1
             ϕY = ExcitationData(P, Y)
             N_mat[ix, iy] = tr(expK * sum(K_otimes.(ϕX.Ws, ϕY.Ws))) + 
                 C2(K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)), K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))) 
             Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 0
-
-            ratio = (ix * χ^2 + iy) / χ^4
-            @printf "N_mat completed %.4f \r" ratio
         end
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 0
+        @printf "N_mat completed %.4f \r" (ix / χ^2) 
     end
     return L*N_mat  
 end
@@ -168,7 +166,7 @@ function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
     for ix in 1:χ^2
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 1
         ϕX = ExcitationData(P, X)
-        for iy in 1:χ^2
+        Polyester.@batch for iy in 1:χ^2
             Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 1
             ϕY = ExcitationData(P, Y)
 
@@ -202,11 +200,9 @@ function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
                                 K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)))
 
             Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 0
-
-            ratio = (ix * χ^2 + iy) / χ^4
-            @printf "H_mat completed %.4f \r" ratio
-        end 
+        end
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 0
+        @printf "H_mat completed %.4f \r" (ix / χ^2) 
     end
     return L*H_mat  
 end

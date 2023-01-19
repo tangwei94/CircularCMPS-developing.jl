@@ -2,7 +2,6 @@ module CircularCMPS
 
 __precompile__(true)
 
-using Revise
 using LinearAlgebra
 using TensorKit, TensorOperations, KrylovKit, TensorKitAD
 using ChainRules, ChainRulesCore, Zygote
@@ -11,6 +10,7 @@ using LoopVectorization
 using Tullio
 using JLD2
 using Printf
+using Polyester
 #using FastGaussQuadrature
 # Write your package code here.
 

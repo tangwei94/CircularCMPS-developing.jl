@@ -28,4 +28,4 @@ H1 = effective_H(ψ, p, L; c=c, μ=μ)
 H̃1 = sqrt(inv(N1)) * H1 * sqrt(inv(N1))
 Es, _ = eigen(Hermitian(H̃1))
 
-@save "tmpdata/excitation_c$(c)_mu$(μ)_L$(L)_k$(k)_chi$(χ).jld2" H1 N1 
+@save "tmpdata1/excitation_c$(c)_mu$(μ)_L$(L)_k$(k)_chi$(χ).jld2" H1 N1 
