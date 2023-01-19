@@ -18,6 +18,9 @@ _, α = finite_env(K_mat(ψ, ψ), L)
 
 p = k*2*pi/L
 
+LinearAlgebra.BLAS.set_num_threads(1)
+@show LinearAlgebra.BLAS.get_num_threads()
+
 N1 = effective_N(ψ, p, L)
 H1 = effective_H(ψ, p, L; c=c, μ=μ)
 

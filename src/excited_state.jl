@@ -127,7 +127,7 @@ function effective_N(ψ::CMPSData, p::Real, L::Real)
     for ix in 1:χ^2
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 1
         ϕX = ExcitationData(P, X)
-        Polyester.@batch for iy in 1:χ^2
+        Threads.@threads for iy in 1:χ^2
             Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 1
             ϕY = ExcitationData(P, Y)
             N_mat[ix, iy] = tr(expK * sum(K_otimes.(ϕX.Ws, ϕY.Ws))) + 
@@ -166,7 +166,7 @@ function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
     for ix in 1:χ^2
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 1
         ϕX = ExcitationData(P, X)
-        Polyester.@batch for iy in 1:χ^2
+        Threads.@threads for iy in 1:χ^2
             Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 1
             ϕY = ExcitationData(P, Y)
 
