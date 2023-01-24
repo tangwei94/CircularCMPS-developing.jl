@@ -68,7 +68,7 @@ function lieb_liniger_ground_state(c::Real, μ::Real, L::Real, ψ0::Union{CMPSDa
 
     transport!(v, x, d, α, xnew) = v
 
-    optalg_LBFGS = LBFGS(;maxiter=1000, gradtol=1e-6, verbosity=2)
+    optalg_LBFGS = LBFGS(;maxiter=10000, gradtol=1e-6, verbosity=2)
 
     ψ = left_canonical(ψ0)[2]
     ψ1, E, grad, numfg, history = optimize(fgE, ψ, optalg_LBFGS; retract = retract,

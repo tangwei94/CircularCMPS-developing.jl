@@ -118,25 +118,41 @@ function effective_N(ψ::CMPSData, p::Real, L::Real)
     χ = get_χ(ψ)
 
     X = zeros(χ, χ)
-    Y = zeros(χ, χ)
+    # thread-safe array building https://discourse.julialang.org/t/thread-safe-array-building/3275/2
+    # TODO. doesn't work for Ys, why?
+    #Ys = fill(zeros(χ, χ), Threads.nthreads())
     Id = id(ℂ^χ)
     N_mat = zeros(ComplexF64, χ^2, χ^2)
-
     C2 = Coeff2(K, -p, L)
+
+    #datapool = []
+    #for _ in 1:Threads.nthreads()
+    #    push!(datapool, [])
+    #end
 
     for ix in 1:χ^2
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 1
         ϕX = ExcitationData(P, X)
         Threads.@threads for iy in 1:χ^2
-            Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 1
+            Y = zeros(χ, χ)
+            Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 1 
+
             ϕY = ExcitationData(P, Y)
             N_mat[ix, iy] = tr(expK * sum(K_otimes.(ϕX.Ws, ϕY.Ws))) + 
                 C2(K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)), K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))) 
-            Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 0
+
+            #push!(datapool[Threads.threadid()], (ix, iy, N_ix_iy))
         end
-        X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 0
         @printf "N_mat completed %.4f \r" (ix / χ^2) 
+        X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 0
     end
+
+    #for elem in reduce(vcat, datapool)
+    #    ix, iy, N_ix_iy = elem
+    #    @show ix, iy, N_ix_iy
+    #    N_mat[ix, iy] = N_ix_iy
+    #end
+
     return L*N_mat  
 end
 
@@ -148,7 +164,6 @@ function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
     χ = get_χ(ψ)
 
     X = zeros(χ, χ)
-    Y = zeros(χ, χ)
     Id = id(ℂ^χ)
     H_mat = zeros(ComplexF64, χ^2, χ^2)
 
@@ -163,10 +178,16 @@ function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
             sum(K_otimes.(QR_commutator, QR_commutator)) +
             c * sum(K_otimes.(ψ.Rs .* ψ.Rs, ψ.Rs .* ψ.Rs))
 
+    datapool = []
+    for _ in 1:Threads.nthreads()
+        push!(datapool, [])
+    end
+
     for ix in 1:χ^2
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 1
         ϕX = ExcitationData(P, X)
         Threads.@threads for iy in 1:χ^2
+            Y = zeros(χ, χ)
             Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 1
             ϕY = ExcitationData(P, Y)
 
@@ -199,7 +220,6 @@ function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
                                 c * sum(K_otimes.(ψ.Rs .* ϕX.Ws + ϕX.Ws .* ψ.Rs, ψ.Rs .* ψ.Rs)), 
                                 K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)))
 
-            Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 0
         end
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 0
         @printf "H_mat completed %.4f \r" (ix / χ^2) 
