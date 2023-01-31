@@ -237,7 +237,6 @@ function Kac_Moody_gen(ψ::CMPSData, V::Vector, q::Real, L::Real, v::Real, K::Re
 
     commQR = Ref(ψ.Q) .* ψ.Rs .- ψ.Rs .* Ref(ψ.Q)
     tensor1ρ = sum(K_otimes.(ψ.Rs, ψ.Rs))
-    tensor1ρ = tensor1ρ - ρ0 * id(domain(tensor1ρ)) 
     tensor1j = sum(K_otimes.(ψ.Rs, commQR) .- K_otimes.(commQR, ψ.Rs))
 
     X = zeros(ComplexF64, χ, χ)
@@ -292,17 +291,15 @@ function Kac_Moody_gen(ψ::CMPSData, VX::Vector, VY::Vector, pX::Real, pY::Real,
         (im * pY) .* ϕY.Ws
 
     tensor1ρ = sum(K_otimes.(ψ.Rs, ψ.Rs))
-    ρId = id(domain(tensor1ρ))
-    tensor1ρ = tensor1ρ - ρ0 * ρId 
     tensor1j = sum(K_otimes.(ψ.Rs, commQR) .- K_otimes.(commQR, ψ.Rs))
 
-    tensor2ρ = sum(K_otimes.(ϕX.Ws, ψ.Rs)) - ρ0 * ρId
+    tensor2ρ = sum(K_otimes.(ϕX.Ws, ψ.Rs)) 
     tensor2j = sum(K_otimes.(ϕX.Ws, commQR) .- K_otimes.(KX, ψ.Rs))
 
-    tensor3ρ = sum(K_otimes.(ψ.Rs, ϕY.Ws)) - ρ0 * ρId
+    tensor3ρ = sum(K_otimes.(ψ.Rs, ϕY.Ws)) 
     tensor3j = sum(K_otimes.(ψ.Rs, KY) .- K_otimes.(commQR, ϕX.Ws))
 
-    tensor4ρ = sum(K_otimes.(ϕX.Ws, ϕY.Ws)) - ρ0 * ρId
+    tensor4ρ = sum(K_otimes.(ϕX.Ws, ϕY.Ws)) 
     tensor4j = sum(K_otimes.(ϕX.Ws, KY) .- K_otimes.(KX, ϕY.Ws))
 
     ovlpρ = tr(expK * tensor4ρ) +
