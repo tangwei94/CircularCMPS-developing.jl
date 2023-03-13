@@ -24,12 +24,21 @@ end
 ψ = ψ5
 χ = get_χ(ψ)
 
-Egs = fE(ψ) * L 
-Ngs = fN(ψ) * L 
+Egs_cmps = fE(ψ) * L 
+Ngs_cmps = fN(ψ) * L 
+
+# variance of N
+opN = sum(K_otimes.(ψ.Rs, ψ.Rs))
+opN2 = sum(K_otimes.(ψ.Rs .* ψ.Rs, ψ.Rs .* ψ.Rs))
+Kmat = K_mat(ψ, ψ)
+expK, α = finite_env(Kmat, L)
+C2 = Coeff2(Kmat, 0, L)
+#VarN = C2(opN, opN) + tr(expK * opN2) + Ngs_cmps / L - Ngs_cmps 
+VarN = C2(opN, opN) + Ngs_cmps / L - Ngs_cmps
 
 momenta_cmps = [0.0]
-energies_cmps = [Egs]
-numbers_cmps = [Ngs]
+energies_cmps = [Egs_cmps]
+numbers_cmps = [Ngs_cmps]
 
 for k in -3:3
     global momenta_cmps, energies_cmps, numbers_cmps
@@ -71,6 +80,8 @@ for n in 1:(Ngs÷2)
 end
 
 Egs = energy(ψgs, μ)
+ϵE = abs((Egs_cmps - Egs) / Egs)
+ϵN = abs((Ngs_cmps - Ngs) / Ngs)
 
 ph_actions = [[0], [-1], [-2], [-1, -1], [-3], [-2, -1], [-1, -1, -1]];
 states = LLBAState[];
