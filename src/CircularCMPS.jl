@@ -10,7 +10,6 @@ using LoopVectorization
 using Tullio
 using JLD2
 using Printf
-using Polyester
 #using FastGaussQuadrature
 # Write your package code here.
 
