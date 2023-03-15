@@ -1,5 +1,5 @@
 χ, d, L = 4, 1, 8
-ϕ = CircularCMPS(rand, χ, d, L)
+ϕ = CMPSData(rand, χ, d)
 
 @test get_χ(ϕ) == χ
 @test get_d(ϕ) == d
@@ -18,9 +18,9 @@ for R in ϕR.Rs
 end
 @test norm(KR) / χ^2 < 1e-10
 
-[expand(ϕ, 12).Q.data[ix, ix] for ix in 1:12]
+[expand(ϕ, 12, L).Q.data[ix, ix] for ix in 1:12]
 
-ψ = expand(ϕ, 6)
+ψ = expand(ϕ, 6, L)
 
 fwd, K_mat_pushback = rrule(K_mat, ϕ, ψ)
 K_mat_pushback(fwd)
@@ -49,10 +49,10 @@ expK, C = finite_env(Kmat, L)
 Kmat0 = Kmat - (C/L) * IK
 @test norm(exponentiate(x -> Kmat0 * x, L, IK)[1] - expK) / χ^2 < 1e-12
 
-_, nm = finite_env(K_mat(ψ, ψ), ψ.L)
-ψ1 = rescale(ψ, -real(nm))
+_, nm = finite_env(K_mat(ψ, ψ), L)
+ψ1 = rescale(ψ, -real(nm), L)
 
-_, nm1 = finite_env(K_mat(ψ1, ψ1), ψ1.L)
+_, nm1 = finite_env(K_mat(ψ1, ψ1), L)
 
 # for test
 #function finite_env_pushback(ēxpK, l̄n_norm)
@@ -72,9 +72,9 @@ _, nm1 = finite_env(K_mat(ψ1, ψ1), ψ1.L)
 #    return NoTangent(), t̄, NoTangent()
 #end 
 
-function fE(ψ::CircularCMPS)
+function fE(ψ::CMPSData)
     OH = kinetic(ψ) + point_interaction(ψ) - particle_density(ψ)
-    expK, _ = finite_env(K_mat(ψ, ψ), ψ.L)
+    expK, _ = finite_env(K_mat(ψ, ψ), L)
     return real(tr(expK * OH))
 end
 
@@ -89,7 +89,7 @@ for R in ψ.Rs
     randomize!(Rr)
     push!(Rrs, Rr)
 end
-ψr = CircularCMPS(Qr, Rrs, ψ.L)
+ψr = CMPSData(Qr, Rrs)
 α = 1e-6
 
 (fE(ψ + α*ψr) - fE(ψ - α*ψr)) / (2*α)

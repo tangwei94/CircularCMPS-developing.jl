@@ -2,10 +2,11 @@
 # consider redefine CircularCMPS -> cMPSdata, and remove the field :L
 # consider define abstract type: CMPS data, which contain different strucutres 
 
-mutable struct CircularCMPS 
+abstract type AbstractCMPSData end
+
+mutable struct CMPSData <: AbstractCMPSData 
     Q::MPSBondTensor
     Rs::Vector{<:MPSBondTensor}
-    L::Real
 end
 
 """
@@ -14,46 +15,46 @@ end
     generate a (plain) cmps with vitual dim `chi` and physical dim `d` using function `f` to generate the parameters.
     Example: `cmps(rand, 2, 4)` 
 """
-function CircularCMPS(f, χ::Integer, d::Integer, L::Real)
+function CMPSData(f, χ::Integer, d::Integer)
     Q = TensorMap(f, ComplexF64, ℂ^χ, ℂ^χ)
     Rs = MPSBondTensor{ComplexSpace}[]
     for ix in 1:d 
         push!(Rs, TensorMap(f, ComplexF64, ℂ^χ, ℂ^χ))
     end
-    return CircularCMPS(Q, Rs, L)
+    return CMPSData(Q, Rs)
 end
 
 # operations on the data. not on the cMPS
-Base.:+(ψ::CircularCMPS, ϕ::CircularCMPS) = CircularCMPS(ψ.Q + ϕ.Q, ψ.Rs .+ ϕ.Rs, ψ.L)
-Base.:-(ψ::CircularCMPS, ϕ::CircularCMPS) = CircularCMPS(ψ.Q - ϕ.Q, ψ.Rs .- ϕ.Rs, ψ.L)
-Base.:*(ψ::CircularCMPS, x::Number) = CircularCMPS(ψ.Q * x, ψ.Rs .* x, ψ.L)
-Base.:*(x::Number, ψ::CircularCMPS) = CircularCMPS(ψ.Q * x, ψ.Rs .* x, ψ.L)
+Base.:+(ψ::CMPSData, ϕ::CMPSData) = CMPSData(ψ.Q + ϕ.Q, ψ.Rs .+ ϕ.Rs)
+Base.:-(ψ::CMPSData, ϕ::CMPSData) = CMPSData(ψ.Q - ϕ.Q, ψ.Rs .- ϕ.Rs)
+Base.:*(ψ::CMPSData, x::Number) = CMPSData(ψ.Q * x, ψ.Rs .* x)
+Base.:*(x::Number, ψ::CMPSData) = CMPSData(ψ.Q * x, ψ.Rs .* x)
 
-function Base.similar(ψ::CircularCMPS) 
+function Base.similar(ψ::CMPSData) 
     Q = similar(ψ.Q)
     Rs = [similar(R) for R in ψ.Rs]
-    return CircularCMPS(Q, Rs, ψ.L)
+    return CMPSData(Q, Rs)
 end
 
-function Base.zero(ψ::CircularCMPS) 
+function Base.zero(ψ::CMPSData) 
     Q = zero(ψ.Q)
     Rs = [zero(R) for R in ψ.Rs]
-    return CircularCMPS(Q, Rs, ψ.L)
+    return CMPSData(Q, Rs)
 end
 
-@inline get_χ(ψ::CircularCMPS) = dim(_firstspace(ψ.Q))
-@inline get_d(ψ::CircularCMPS) = length(ψ.Rs)
-TensorKit.space(ψ::CircularCMPS) = _firstspace(ψ.Q)
-#function Base.iterate(ψ::CircularCMPS, i=1)
+@inline get_χ(ψ::CMPSData) = dim(_firstspace(ψ.Q))
+@inline get_d(ψ::CMPSData) = length(ψ.Rs)
+TensorKit.space(ψ::CMPSData) = _firstspace(ψ.Q)
+#function Base.iterate(ψ::CMPSData, i=1)
     #data = [ψ.Q, ψ.Rs]
     #(i > length(data)) ? nothing : (data[i],i+1)
 #end
 
-get_matrices(ψ::CircularCMPS) = (ψ.Q, ψ.Rs)
+get_matrices(ψ::CMPSData) = (ψ.Q, ψ.Rs)
 
 # TODO. define transfer_matrix object as MPSKit.jl did
 """ 
-    transfer_matrix(ϕ::CircularCMPS, ψ::CircularCMPS) where S<:EuclideanSpace
+    transfer_matrix(ϕ::CMPSData, ψ::CMPSData) where S<:EuclideanSpace
 
     The transfer matrix for <ϕ|ψ>.
     target at right vector. 
@@ -61,7 +62,7 @@ get_matrices(ψ::CircularCMPS) = (ψ.Q, ψ.Rs)
     target at right vector. 
     T = I + ϵK. returns K
 """
-function transfer_matrix(ϕ::CircularCMPS, ψ::CircularCMPS)
+function transfer_matrix(ϕ::CMPSData, ψ::CMPSData)
     function fK(v::MPSBondTensor)
         Tv = ψ.Q * v + v * ϕ.Q' 
         for (Rd, Ru) in zip(ψ.Rs, ϕ.Rs)
@@ -73,13 +74,13 @@ function transfer_matrix(ϕ::CircularCMPS, ψ::CircularCMPS)
 end
 
 """
-   transfer_matrix_dagger(ϕ::CircularCMPS{S}, ψ::CircularCMPS{S}) where S<:EuclideanSpace
+   transfer_matrix_dagger(ϕ::CMPSData{S}, ψ::CMPSData{S}) where S<:EuclideanSpace
     
    The Hermitian conjugate of the transfer matrix for <ϕ|ψ>.
    target at left vector. 
    T† = I + ϵK†. returns K†
 """
-function transfer_matrix_dagger(ϕ::CircularCMPS, ψ::CircularCMPS) 
+function transfer_matrix_dagger(ϕ::CMPSData, ψ::CMPSData) 
     function fK_dagger(v::MPSBondTensor)
         Tv = v * ψ.Q + ϕ.Q' * v 
         for (Rd, Ru) in zip(ψ.Rs, ϕ.Rs)
@@ -91,12 +92,12 @@ function transfer_matrix_dagger(ϕ::CircularCMPS, ψ::CircularCMPS)
 end
 
 """
-    left_canonical(ψ::CircularCMPS)
+    left_canonical(ψ::CMPSData)
 
     Convert the input cMPS into the left-canonical form. 
     Return the gauge transformation matrix X and the left-canonicalized cMPS. 
 """
-function left_canonical(ψ::CircularCMPS)
+function left_canonical(ψ::CMPSData)
     # transfer matrix dagger
     fK_dagger = transfer_matrix_dagger(ψ, ψ)
     
@@ -116,16 +117,16 @@ function left_canonical(ψ::CircularCMPS)
     Q = X * ψ.Q * Xinv - 0.5 * w * id(_firstspace(ψ.Q)) # TODO. better way to normalize? 
     Rs = [X * R * Xinv for R in ψ.Rs]
 
-    return X, CircularCMPS(Q, Rs, ψ.L) 
+    return X, CMPSData(Q, Rs) 
 end
 
 """
-    right_canonical(ψ::CircularCMPS) 
+    right_canonical(ψ::CMPSData) 
 
     Convert the input cmps into the right-canonical form. 
     Return the gauge transformation matrix Y and the right-canonicalized cmps. 
 """
-function right_canonical(ψ::CircularCMPS)
+function right_canonical(ψ::CMPSData)
     # transfer matrix
     fK = transfer_matrix(ψ, ψ)
 
@@ -145,7 +146,7 @@ function right_canonical(ψ::CircularCMPS)
     Q = Yinv' * ψ.Q * Y' - 0.5 * w * id(_firstspace(ψ.Q)) # TODO. better way to normalize? 
     Rs = [Yinv' * R * Y' for R in ψ.Rs]
     
-    return Y, CircularCMPS(Q, Rs, ψ.L) 
+    return Y, CMPSData(Q, Rs) 
 end
 
 """
@@ -154,7 +155,7 @@ end
     expand the cmps `psi` to a target bond dimension `chi` by adding small numbers of size `perturb`.
     Only works when the Q, Rs are plain tensors.
 """
-function expand(ψ::CircularCMPS, χ::Integer; perturb::Float64=1e-3)
+function expand(ψ::CMPSData, χ::Integer, L::Real; perturb::Float64=1e-3)
     χ0, d = get_χ(ψ), get_d(ψ)
     if χ <= χ0
         @warn "new χ not bigger than χ0"
@@ -166,7 +167,7 @@ function expand(ψ::CircularCMPS, χ::Integer; perturb::Float64=1e-3)
     Q = copy(mask)
     Q.data[1:χ0, 1:χ0] += ψ.Q.data
     for ix in χ0+1:χ
-        Q.data[ix, ix] += 2*log(perturb)/ψ.L # suppress
+        Q.data[ix, ix] += 2*log(perturb)/L # suppress
     end
 
     Rs = fill(copy(mask), d)
@@ -174,11 +175,11 @@ function expand(ψ::CircularCMPS, χ::Integer; perturb::Float64=1e-3)
         R.data[1:χ0, 1:χ0] += R0.data
     end
 
-    return CircularCMPS(Q, Rs, ψ.L) 
+    return CMPSData(Q, Rs) 
 end
 
 """
-    K_mat(ϕ::CircularCMPS, ψ::CircularCMPS)
+    K_mat(ϕ::CMPSData, ψ::CMPSData)
 
     calculate the K_mat from two cmpses `phi` and `psi`. order of indices:
 
@@ -198,7 +199,7 @@ end
                    |
         -1 --<--   ψ   --<-- -3
 """
-function K_mat(ϕ::CircularCMPS, ψ::CircularCMPS)
+function K_mat(ϕ::CMPSData, ψ::CMPSData)
     Id_ψ, Id_ϕ = id(space(ψ)), id(space(ϕ)) 
     Kmat = K_otimes(ϕ.Q, Id_ψ) + K_otimes(Id_ϕ, ψ.Q) + sum(K_otimes.(ϕ.Rs, ψ.Rs))
     return Kmat
@@ -238,15 +239,11 @@ function finite_env(K::TensorMap{ComplexSpace}, L::Real)
 end
 
 """
-    rescale(ψ::CircularCMPS, lnα::Real)
+    rescale(ψ::CMPSData, lnα::Real)
 
     rescale the cMPS: ψ -> exp(lnα) * ψ
 """
-function rescale(ψ::CircularCMPS, lnα::Real)
-    Q = ψ.Q + (lnα / 2 / ψ.L) * id(domain(ψ.Q))
-    return CircularCMPS(Q, ψ.Rs, ψ.L)
+function rescale(ψ::CMPSData, lnα::Real, L::Real)
+    Q = ψ.Q + (lnα / 2 / L) * id(domain(ψ.Q))
+    return CMPSData(Q, ψ.Rs)
 end
-
-
-
-
