@@ -30,6 +30,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 [compat]
 ChainRules = "1"
 ChainRulesCore = "1"
+Colors = "0.12"
 FastGaussQuadrature = "0.5"
 OptimKit = "0.3"
 Revise = "3"
