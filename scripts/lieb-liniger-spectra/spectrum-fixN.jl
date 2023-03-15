@@ -42,7 +42,7 @@ momenta = momentum.(states)
 energies = energy.(states)
 
 function ρ0_form_factor(ψ1, ψ2, target)
-    ln_norm_ρ, phase_ρ = ln_ρ0_form_factor(ψ1, ψ2; target=target)
+    ln_norm_ρ, phase_ρ = ln_ρ0_form_factor(ψ1, ψ2; target=target, p=0.314159)
     return exp(ln_norm_ρ) * phase_ρ
 end
 
@@ -106,6 +106,7 @@ end
 v_cmps = (minimum(Es_cmps[4+1]) - Egs_cmps) / (2*pi/L)
 K_cmps = 2*pi*(Ngs_cmps/L)/ v_cmps
 
+numbers_cmps = ComplexF64[Ngs_cmps]
 chiral_ovlps_gs_cmps = ComplexF64[0]
 antichiral_ovlps_gs_cmps = ComplexF64[0]
 chiral_ovlps_ψ1_cmps = ComplexF64[]
@@ -124,7 +125,10 @@ for k in -3:3
     Ns = real.(diag(Vs' * M̃1 * Vs))
     msk = (abs.(Ns .- Ngs_cmps) .< ΔN) .& (Es .- Egs_cmps .< ΔE * 5)
 
-    Δphase, Δphase1 = 1, 1 
+    @show Ns[msk]
+    numbers_cmps = vcat(numbers_cmps, Ns[msk])
+
+    Δphase = 1 
     for ix in Vector(1:χ^2)[msk]
         global chiral_ovlps_ψ1_cmps, antichiral_ovlps_ψ1_cmps, V0
         
@@ -281,3 +285,35 @@ Colorbar(gl[1, 1], sc1_main, label=L"\text{form factor}", vertical = false, flip
 
 @show fig
 Makie.save("fig-cmps-spect.pdf", fig)
+
+
+
+msk = (scale_E.(energies) .< 2.5) 
+msk_cmps = (scale_E_cmps.(energies_cmps) .< 2.5)
+
+momenta[msk]
+momenta_cmps[msk_cmps]
+
+momenta_1 = momenta[msk] .- 1e-4 .* scale_E.(energies[msk])
+order = sortperm(momenta_1)
+momenta_1_cmps = momenta_cmps[msk_cmps] .- 1e-4 .* scale_E_cmps.(energies_cmps[msk_cmps])
+order_cmps = sortperm(momenta_1_cmps)
+momenta[msk][order]
+momenta_cmps[msk_cmps][order_cmps]
+
+scale_E.(energies)[msk][order]
+scale_E_cmps.(energies_cmps)[msk_cmps][order_cmps]
+
+chiral_ovlps_gs[msk][order]
+chiral_ovlps_gs_cmps[msk_cmps][order_cmps]
+
+open("result.txt","w") do io
+   println(io, "momenta ba ", momenta[msk][order])
+   println(io, "momenta cmps ", momenta_cmps[msk_cmps][order_cmps])
+   println(io, "energies ba ", scale_E.(energies[msk][order]))
+   println(io, "energies cmps ", scale_E_cmps.(energies_cmps[msk_cmps][order_cmps]))
+   println(io, "N cmps ", real.(numbers_cmps[msk_cmps][order_cmps]))
+   println(io, "chiral ovlp ba ", real.(chiral_ovlps_gs[msk][order]))
+   println(io, "chiral ovlp cmps norm", norm.(chiral_ovlps_gs_cmps[msk_cmps][order_cmps]))
+   println(io, "chiral ovlp cmps angle", angle.(chiral_ovlps_gs_cmps[msk_cmps][order_cmps]))
+end
