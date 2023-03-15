@@ -60,11 +60,18 @@ export θ2,
        effective_H, 
        Kac_Moody_gen
 
+# cmpo.jl 
+export AbstractCMPO, CMPO, ln_ovlp, compress
+
+# cMPS code for continuous Hamiltonians
 include("utils.jl");
 include("cmps.jl");
 include("cmpsAD.jl");
 include("operators.jl");
 include("ground_state.jl")
 include("excited_state.jl");
+
+# cMPO code
+include("cmpo.jl")
 
 end
