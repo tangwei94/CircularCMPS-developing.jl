@@ -106,17 +106,16 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
         Rs1 = Ref(U1inv) .* ψ.Rs .* Ref(U1)
         ψ1 = CMPSData(Q1, Rs1)
     end
-    return ψ1
 
     # variational optimization
     function _f(ϕ::CMPSData)
-        return -ln_ovlp(ϕ, ψ, L) - ln_ovlp(ψ, ϕ, L) + ln_ovlp(ϕ, ϕ, L) + ln_norm
+        return real(-ln_ovlp(ϕ, ψ, L) - ln_ovlp(ψ, ϕ, L) + ln_ovlp(ϕ, ϕ, L) + ln_norm)
     end
     function _fg(ϕ::CMPSData)
         fvalue = _f(ϕ)
         ∂ϕ = _f'(ϕ)
         dQ = zero(∂ϕ.Q) 
-        dRs = ∂ψ.Rs .- ψ.Rs .* Ref(∂ϕ.Q)
+        dRs = ∂ϕ.Rs .- ϕ.Rs .* Ref(∂ϕ.Q)
 
         return fvalue, CMPSData(dQ, dRs) 
     end
@@ -125,7 +124,7 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     end
     function retract(ϕ::CMPSData, dϕ::CMPSData, α::Real)
         Rs = ϕ.Rs .+ α .* dϕ.Rs 
-        Q = ϕ.Q - α * sum(ϕ.Rs' .* dϕ.Rs) - 0.5 * α^2 * sum(dϕ.Rs' .* dϕ.Rs)
+        Q = ϕ.Q - α * sum(adjoint.(ϕ.Rs) .* dϕ.Rs) - 0.5 * α^2 * sum(adjoint.(dϕ.Rs) .* dϕ.Rs)
         ϕ1 = CMPSData(Q, Rs)
         return ϕ1, dϕ
     end
@@ -161,12 +160,12 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     
     optalg_LBFGS = LBFGS(;maxiter=maxiter, gradtol=tol, verbosity=2)
 
-    ψ = left_canonical(ψ0)[2]
-    ψ1, ln_fidel, grad, numfg, history = optimize(_fg, ψ1, optalg_LBFGS; retract = retract,
+    ψ1 = left_canonical(ψ1)[2]
+    ψ2, ln_fidel, grad, numfg, history = optimize(_fg, ψ1, optalg_LBFGS; retract = retract,
                                     precondition = precondition,
                                     inner = inner, transport! =transport!,
                                     scale! = scale!, add! = add!
                                     );
 
-    return ψ1, ln_fidel, grad, numfg, history 
+    return ψ2, ln_fidel, grad, numfg, history, ψ1 
 end
