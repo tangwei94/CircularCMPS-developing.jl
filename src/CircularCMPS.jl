@@ -2,7 +2,6 @@ module CircularCMPS
 
 __precompile__(true)
 
-using Revise
 using LinearAlgebra
 using TensorKit, TensorOperations, KrylovKit, TensorKitAD
 using ChainRules, ChainRulesCore, Zygote

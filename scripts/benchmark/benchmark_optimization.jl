@@ -2,8 +2,9 @@ using CircularCMPS
 using JLD2
 using TensorKit, LinearAlgebra, KrylovKit, OptimKit
 using CairoMakie
+using LiebLinigerBA
 
-function lieb_liniger_ground_state_riemannian(c::Real, μ::Real, L::Real, ψ0::Union{CMPSData, Nothing}=nothing; do_precond::Bool=true)
+function lieb_liniger_ground_state_riemannian(c::Real, μ::Real, L::Real, ψ0::Union{CMPSData, Nothing}=nothing; precond_choice::Symbol=:default, max_steps::Int=10000)
     function fE(ψ::CMPSData)
         OH = kinetic(ψ) + c*point_interaction(ψ) - μ * particle_density(ψ)
         expK, _ = finite_env(K_mat(ψ, ψ), L)
@@ -21,7 +22,8 @@ function lieb_liniger_ground_state_riemannian(c::Real, μ::Real, L::Real, ψ0::U
     end
 
     function inner(ψ, ψ1::CMPSData, ψ2::CMPSData)
-        return real(dot(ψ1.Q, ψ2.Q) + sum(dot.(ψ1.Rs, ψ2.Rs))) #TODO. clarify the cases with or withou factor of 2. depends on how to define the complex gradient
+        #return real(dot(ψ1.Q, ψ2.Q) + sum(dot.(ψ1.Rs, ψ2.Rs))) #TODO. clarify the cases with or withou factor of 2. depends on how to define the complex gradient
+        return real(sum(dot.(ψ1.Rs, ψ2.Rs))) 
     end
 
     function retract(ψ::CMPSData, dψ::CMPSData, α::Real)
@@ -69,29 +71,46 @@ function lieb_liniger_ground_state_riemannian(c::Real, μ::Real, L::Real, ψ0::U
     end
 
     function precondition1(ψ::CMPSData, dψ::CMPSData)
-        fK = transfer_matrix(ψ, ψ)
+        Kmat = K_mat(ψ, ψ)
+        expK, _ = finite_env(Kmat, L)
+
+        δ = inner(ψ, dψ, dψ)
+
+        P = herm_reg_inv(permute(expK, (2, 4), (1,3)), max(1e-12, 1e-3*δ))
+        P = permute(P, (1, 4), (2, 3))
+
+        V = dψ.Q 
+        Ws = MPSBondTensor[]
+        for W in dψ.Rs
+            @tensor W1[-1; -2] := W[1, 2] * P[2, -1, 1, -2]
+            push!(Ws, W1)
+        end
+
+        return CMPSData(V, Ws)
     end
 
-    if do_precond
-        precondition_choice = precondition
+    if precond_choice == :default
+        precondition_used = precondition
+    elseif precond_choice == :new1
+        precondition_used = precondition1 
     else
-        precondition_choice = no_precondition
+        precondition_used = no_precondition
     end
 
     transport!(v, x, d, α, xnew) = v
 
-    optalg_LBFGS = LBFGS(;maxiter=10000, gradtol=1e-6, verbosity=2)
+    optalg_LBFGS = LBFGS(;maxiter=max_steps, gradtol=1e-6, verbosity=2)
 
     ψ = left_canonical(ψ0)[2]
     ψ1, E, grad, numfg, history = optimize(fgE, ψ, optalg_LBFGS; retract = retract,
-                                    precondition = precondition_choice,
+                                    precondition = precondition_used,
                                     inner = inner, transport! =transport!,
                                     scale! = scale!, add! = add!
                                     );
     return ψ1, E, grad, numfg, history 
 end
 
-function lieb_liniger_ground_state_ordinary(c::Real, μ::Real, L::Real, ψ0::Union{CMPSData, Nothing}=nothing)
+function lieb_liniger_ground_state_ordinary(c::Real, μ::Real, L::Real, ψ0::Union{CMPSData, Nothing}=nothing; max_steps::Int=10000)
     function fE(ψ::CMPSData)
         OH = kinetic(ψ) + c*point_interaction(ψ) - μ * particle_density(ψ)
         expK, _ = finite_env(K_mat(ψ, ψ), L)
@@ -137,7 +156,7 @@ function lieb_liniger_ground_state_ordinary(c::Real, μ::Real, L::Real, ψ0::Uni
 
     transport!(v, x, d, α, xnew) = v
 
-    optalg_LBFGS = LBFGS(;maxiter=10000, gradtol=1e-6, verbosity=2)
+    optalg_LBFGS = LBFGS(;maxiter=max_steps, gradtol=1e-6, verbosity=2)
 
     ψ = left_canonical(ψ0)[2]
     ψ1, E, grad, numfg, history = optimize(fgE, ψ, optalg_LBFGS; retract = retract,
@@ -149,21 +168,31 @@ function lieb_liniger_ground_state_ordinary(c::Real, μ::Real, L::Real, ψ0::Uni
 
 end
 
-c, μ, L = 1, 4, 32
+c, L = 1, 32
 
+## BA solution
+N = Int(L) 
+μ = get_mu(c, L, N)
+
+Nexact = N / L
+ψgs = ground_state(c, L, N)
+Eexact = energy(ψgs, μ) / L
+
+## cMPS optimization
 χ = 12
 ψ0 = CMPSData(rand, χ, 1)
+max_steps = 10000
 
-ψ1, E1, grad1, numfg1, history1 = lieb_liniger_ground_state_riemannian(c, μ, L, ψ0, do_precond = true);
-ψ2, E2, grad2, numfg2, history2 = lieb_liniger_ground_state_riemannian(c, μ, L, ψ0, do_precond = false);
-ψ3, E3, grad3, numfg3, history3 = lieb_liniger_ground_state_ordinary(c, μ, L, ψ0);
+ψ1, E1, grad1, numfg1, history1 = lieb_liniger_ground_state_riemannian(c, μ, L, ψ0, precond_choice = :default, max_steps=max_steps);
+ψ2, E2, grad2, numfg2, history2 = lieb_liniger_ground_state_riemannian(c, μ, L, ψ0, precond_choice = :new1, max_steps=max_steps);
+ψ3, E3, grad3, numfg3, history3 = lieb_liniger_ground_state_riemannian(c, μ, L, ψ0, precond_choice = :none, max_steps=max_steps);
+ψ4, E4, grad4, numfg4, history4 = lieb_liniger_ground_state_ordinary(c, μ, L, ψ0, max_steps=max_steps);
 
-@save "tmp_history_chi$(χ).jld2" history1 history2 history3
-@load "tmp_history_chi$(χ).jld2" history1 history2 history3
+@save "tmp_history_c$(c)_N$(N)_L$(L)_chi$(χ).jld2" history1 history2 history3 history4
+@load "tmp_history_c$(c)_N$(N)_L$(L)_chi$(χ).jld2" history1 history2 history3 history4
 
-Nexact = 79 / L
-Eexact = -168.62194635455168 / L
 error_in_E(x) = abs((x - Eexact) / Eexact) 
+@show error_in_E.([E1, E2, E3, E4])
 
 #font1 = Makie.to_font("/home/wtang/.local/share/fonts/cmunrm.ttf")
 font2 = Makie.to_font("/home/wtang/.local/share/fonts/STIXTwoText-Regular.otf")
@@ -171,9 +200,10 @@ font2 = Makie.to_font("/home/wtang/.local/share/fonts/STIXTwoText-Regular.otf")
 N1, _ = size(history1)
 N2, _ = size(history2)
 N3, _ = size(history3)
-Nmin = 100
+N4, _ = size(history4)
+Nmin = 1
 
-fig = Figure(backgroundcolor = :white, fontsize=18, resolution= (600, 600), fonts=(; regular=font2, math=font2))
+fig = Figure(backgroundcolor = :white, fontsize=18, resolution= (600, 600), fonts=(; regular=font2))
 gf = fig[1, 1] = GridLayout() 
 gl = fig[2, 1] = GridLayout()
 
@@ -182,18 +212,24 @@ ax1 = Axis(gf[1, 1],
         ylabel = L"\text{error in } E",
         yscale = log10, 
         )
-lines!(ax1, Nmin:N3, error_in_E.(history3[Nmin:N3, 1]), label=L"\text{plain}")
-lines!(ax1, Nmin:N2, error_in_E.(history2[Nmin:N2, 1]), label=L"\text{Riemannian, w/o precond.}")
-lines!(ax1, Nmin:N1, error_in_E.(history1[Nmin:N1, 1]), label=L"\text{Riemannian, w/ precond.}")
+lines!(ax1, Nmin:N4, error_in_E.(history4[Nmin:N4, 1]), label=L"\text{plain}")
+lines!(ax1, Nmin:N3, error_in_E.(history3[Nmin:N3, 1]), label=L"\text{Riemannian, w/o precond.}")
+lines!(ax1, Nmin:N1, error_in_E.(history1[Nmin:N1, 1]), label=L"\text{Riemannian, w/ precond v1.}")
+lines!(ax1, Nmin:N2, error_in_E.(history2[Nmin:N2, 1]), label=L"\text{Riemannian, w/ precond v2.}")
+
+@show fig
 
 ax2 = Axis(gf[2, 1], 
         xlabel = L"\text{steps}",
         ylabel = L"\text{grad norm}",
         yscale = log10, 
         )
+lines!(ax2, Nmin:N4, history4[Nmin:N4, 2])
 lines!(ax2, Nmin:N3, history3[Nmin:N3, 2])
-lines!(ax2, Nmin:N2, history2[Nmin:N2, 2])
 lines!(ax2, Nmin:N1, history1[Nmin:N1, 2])
+lines!(ax2, Nmin:N2, history2[Nmin:N2, 2])
+
+@show fig
 
 for (label, layout) in zip(["(a)", "(b)"], [gf[1, 1], gf[2, 1]])
     Label(layout[1, 1, TopLeft()], label, 
@@ -204,7 +240,7 @@ end
 
 #axislegend(ax1, position=:rb, framevisible=false)
 leg = Legend(gl[1,1], ax1, orientation=:horizontal, framecolor=:lightgrey, labelsize=15)
-#leg.nbanks = 2
+leg.nbanks = 2
 
 @show fig
-Makie.save("fig-benchmark-riemannian.pdf", fig)
+Makie.save("fig-benchmark-riemannian-c$(c)_N$(N)_L$(L)_chi$(χ).pdf", fig)
