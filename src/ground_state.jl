@@ -18,7 +18,8 @@ function lieb_liniger_ground_state(c::Real, μ::Real, L::Real, ψ0::Union{CMPSDa
     end
 
     function inner(ψ, ψ1::CMPSData, ψ2::CMPSData)
-        return real(dot(ψ1.Q, ψ2.Q) + sum(dot.(ψ1.Rs, ψ2.Rs))) #TODO. clarify the cases with or withou factor of 2. depends on how to define the complex gradient
+        #return real(dot(ψ1.Q, ψ2.Q) + sum(dot.(ψ1.Rs, ψ2.Rs))) #TODO. clarify the cases with or withou factor of 2. depends on how to define the complex gradient
+        return real(sum(dot.(ψ1.Rs, ψ2.Rs))) 
     end
 
     function retract(ψ::CMPSData, dψ::CMPSData, α::Real)
@@ -67,7 +68,7 @@ function lieb_liniger_ground_state(c::Real, μ::Real, L::Real, ψ0::Union{CMPSDa
 
     transport!(v, x, d, α, xnew) = v
 
-    optalg_LBFGS = LBFGS(;maxiter=1000, gradtol=1e-6, verbosity=2)
+    optalg_LBFGS = LBFGS(;maxiter=10000, gradtol=1e-6, verbosity=2)
 
     ψ = left_canonical(ψ0)[2]
     ψ1, E, grad, numfg, history = optimize(fgE, ψ, optalg_LBFGS; retract = retract,
@@ -79,13 +80,13 @@ function lieb_liniger_ground_state(c::Real, μ::Real, L::Real, ψ0::Union{CMPSDa
 
 end
 
-c, μ, L = 1, 2, 10
-χ, d = 4, 1
-ψ = CMPSData(rand, χ, d)
-ψ1, E, grad, numfg, history = lieb_liniger_ground_state(c, μ, L, ψ)
-
-ψ2 = expand(ψ1, 8, L)
-ψ2, E2, grad, numfg, history = lieb_liniger_ground_state(c, μ, L, ψ2)
-
-ψ3 = expand(ψ2, 12, L)
-ψ3, E3, grad, numfg, history = lieb_liniger_ground_state(c, μ, L, ψ3)
+#c, μ, L = 1, 2, 4
+#χ, d = 4, 1
+#ψ = CMPSData(rand, χ, d)
+#ψ1, E, grad, numfg, history = lieb_liniger_ground_state(c, μ, L, ψ)
+#
+#ψ2 = expand(ψ1, 8, L)
+#ψ2, E2, grad, numfg, history = lieb_liniger_ground_state(c, μ, L, ψ2)
+#
+#ψ3 = expand(ψ2, 12, L)
+#ψ3, E3, grad, numfg, history = lieb_liniger_ground_state(c, μ, L, ψ3)
