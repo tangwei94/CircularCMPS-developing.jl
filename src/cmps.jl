@@ -1,7 +1,3 @@
-# TODO. no need to include L in most of cases.
-# consider redefine CircularCMPS -> cMPSdata, and remove the field :L
-# consider define abstract type: CMPS data, which contain different strucutres 
-
 abstract type AbstractCMPSData end
 
 mutable struct CMPSData <: AbstractCMPSData 
