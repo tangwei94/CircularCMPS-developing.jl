@@ -35,7 +35,7 @@ function K_otimes(A::MPSBondTensor, B::MPSBondTensor)
     return Abar_otimes_B
 end
 
-function herm_reg_inv(A::MPSBondTensor, δ::Real)
+function herm_reg_inv(A::AbstractTensorMap, δ::Real)
     # A is Hermitian up to a phase
 
     _, S, V = svd(A)
