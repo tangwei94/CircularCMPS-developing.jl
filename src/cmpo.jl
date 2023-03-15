@@ -86,6 +86,7 @@ function ln_ovlp(ϕ::CMPSData, T::CMPO, ψ::CMPSData, L::Real)
 end
 
 function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-8, init=nothing)
+    # TODO. wrap
     if χ >= get_χ(ψ)
         @warn "no need to compress"
         return ψ
@@ -94,23 +95,25 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     K = ψ * ψ
     expK, ln_norm = finite_env(K, L)
 
-    ψ1 = init
-    if init === nothing
-        @tensor M[-1; -2] := expK[1 -1 ; 1 -2]
-        _, U = eig(M; sortby=λ->-real(λ))
-        P = isometry(space(ψ), ℂ^χ)
-        U1 = U * P
-        U1inv = P' * inv(U) 
+    @tensor M[-1; -2] := expK[1 -1 ; 1 -2]
+    _, U = eig(M; sortby=λ->-real(λ))
+    P = isometry(space(ψ), ℂ^χ)
+    U1 = U * P
+    U1inv = P' * inv(U) 
 
-        Q1 = U1inv * ψ.Q * U1
-        Rs1 = Ref(U1inv) .* ψ.Rs .* Ref(U1)
-        ψ1 = CMPSData(Q1, Rs1)
-    end
+    Q1 = U1inv * ψ.Q * U1
+    Rs1 = Ref(U1inv) .* ψ.Rs .* Ref(U1)
+    ψ1 = CMPSData(Q1, Rs1)
 
     # variational optimization
     function _f(ϕ::CMPSData)
         return real(-ln_ovlp(ϕ, ψ, L) - ln_ovlp(ψ, ϕ, L) + ln_ovlp(ϕ, ϕ, L) + ln_norm)
     end
+
+    if init !== nothing && _f(init) < _f(ψ1)
+        ψ1 = init
+    end
+
     function _fg(ϕ::CMPSData)
         fvalue = _f(ϕ)
         ∂ϕ = _f'(ϕ)
@@ -161,11 +164,11 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     optalg_LBFGS = LBFGS(;maxiter=maxiter, gradtol=tol, verbosity=2)
 
     ψ1 = left_canonical(ψ1)[2]
-    ψ2, ln_fidel, grad, numfg, history = optimize(_fg, ψ1, optalg_LBFGS; retract = retract,
+    ψ1, ln_fidel, grad, numfg, history = optimize(_fg, ψ1, optalg_LBFGS; retract = retract,
                                     precondition = precondition,
                                     inner = inner, transport! =transport!,
                                     scale! = scale!, add! = add!
                                     );
 
-    return ψ2, ln_fidel, grad, numfg, history, ψ1 
+    return ψ1#, ln_fidel, grad, numfg, history 
 end
