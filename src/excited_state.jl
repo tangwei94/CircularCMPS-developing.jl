@@ -44,7 +44,7 @@ function (C2::Coeff2)(A1::TensorMap{ComplexSpace}, A2::TensorMap{ComplexSpace})
     Ã1data = (C2.Uinv * A1 * C2.U).data 
     Ã2data = (C2.Uinv * A2 * C2.U).data 
 
-    @tullio result = C2.θs[i1, i2] * Ã1data[i1, i2] * Ã2data[i2, i1]
+    @tullio result = C2.θs[i2, i1] * Ã1data[i1, i2] * Ã2data[i2, i1]
     return result
 end
 
@@ -69,7 +69,7 @@ function (C3::Coeff3)(A1::TensorMap{ComplexSpace}, A2::TensorMap{ComplexSpace}, 
     Ã2data = (C3.Uinv * A2 * C3.U).data 
     Ã3data = (C3.Uinv * A3 * C3.U).data 
 
-    @tullio result = C3.θs[i1, i2, i3] * Ã1data[i1, i2] * Ã2data[i2, i3] * Ã3data[i3, i1] 
+    @tullio result = C3.θs[i2, i3, i1] * Ã1data[i1, i2] * Ã2data[i2, i3] * Ã3data[i3, i1] 
     return result
 end
 
@@ -88,7 +88,7 @@ function ExcitationData(P::AbstractTensorMap, data::AbstractMatrix)
     return ExcitationData(V, Ws)
 end
 
-function gauge_fixing_map(ψ::CMPSData)
+function gauge_fixing_map(ψ::CMPSData, L::Real)
 
     χ = get_χ(ψ)
     d = get_d(ψ)
@@ -111,45 +111,59 @@ function gauge_fixing_map(ψ::CMPSData)
 end
 
 function effective_N(ψ::CMPSData, p::Real, L::Real)
-    P = gauge_fixing_map(ψ)
+    P = gauge_fixing_map(ψ, L)
     K = K_mat(ψ, ψ)
     expK, _ = finite_env(K, L)
 
     χ = get_χ(ψ)
 
     X = zeros(χ, χ)
-    Y = zeros(χ, χ)
+    # thread-safe array building https://discourse.julialang.org/t/thread-safe-array-building/3275/2
+    # TODO. doesn't work for Ys, why?
+    #Ys = fill(zeros(χ, χ), Threads.nthreads())
     Id = id(ℂ^χ)
     N_mat = zeros(ComplexF64, χ^2, χ^2)
+    C2 = Coeff2(K, -p, L)
 
-    C2 = Coeff2(K, p, L)
+    #datapool = []
+    #for _ in 1:Threads.nthreads()
+    #    push!(datapool, [])
+    #end
 
     for ix in 1:χ^2
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 1
         ϕX = ExcitationData(P, X)
-        for iy in 1:χ^2
-            Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 1
+        Threads.@threads for iy in 1:χ^2
+            Y = zeros(χ, χ)
+            Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 1 
+
             ϕY = ExcitationData(P, Y)
+            N_mat[ix, iy] = tr(expK * sum(K_otimes.(ϕX.Ws, ϕY.Ws))) + 
+                C2(K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)), K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))) 
 
-            N_mat[ix, iy] = tr(expK * sum(K_otimes.(ϕX.Ws, ϕY.Ws))) +
-                C2(K_otimes(Id, ϕY.V) + sum(K_otimes.(ϕY.Ws, ψ.Rs)), K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs)))
-
-            Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 0
+            #push!(datapool[Threads.threadid()], (ix, iy, N_ix_iy))
         end
+        @printf "N_mat completed %.4f \r" (ix / χ^2) 
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 0
     end
+
+    #for elem in reduce(vcat, datapool)
+    #    ix, iy, N_ix_iy = elem
+    #    @show ix, iy, N_ix_iy
+    #    N_mat[ix, iy] = N_ix_iy
+    #end
+
     return L*N_mat  
 end
 
-function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
-    P = gauge_fixing_map(ψ)
+function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0, k0=1)
+    P = gauge_fixing_map(ψ, L)
     K = K_mat(ψ, ψ)
     expK, _ = finite_env(K, L)
 
     χ = get_χ(ψ)
 
     X = zeros(χ, χ)
-    Y = zeros(χ, χ)
     Id = id(ℂ^χ)
     H_mat = zeros(ComplexF64, χ^2, χ^2)
 
@@ -161,13 +175,19 @@ function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
 
     QR_commutator = Ref(ψ.Q) .* ψ.Rs .- ψ.Rs .* Ref(ψ.Q)
     op_Hψ = -μ * sum(K_otimes.(ψ.Rs, ψ.Rs)) + 
-            sum(K_otimes.(QR_commutator, QR_commutator)) +
+            k0 * sum(K_otimes.(QR_commutator, QR_commutator)) +
             c * sum(K_otimes.(ψ.Rs .* ψ.Rs, ψ.Rs .* ψ.Rs))
+
+    datapool = []
+    for _ in 1:Threads.nthreads()
+        push!(datapool, [])
+    end
 
     for ix in 1:χ^2
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 1
         ϕX = ExcitationData(P, X)
-        for iy in 1:χ^2
+        Threads.@threads for iy in 1:χ^2
+            Y = zeros(χ, χ)
             Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 1
             ϕY = ExcitationData(P, Y)
 
@@ -175,7 +195,7 @@ function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
                    Ref(ψ.Q) .* ϕY.Ws - ϕY.Ws .* Ref(ψ.Q) + (im * p) .* ϕY.Ws
             kinX = Ref(ϕX.V) .* ψ.Rs - ψ.Rs .* Ref(ϕX.V) + 
                    Ref(ψ.Q) .* ϕX.Ws - ϕX.Ws .* Ref(ψ.Q) + (im * p) .* ϕX.Ws
-            H1 =  -μ * sum(K_otimes.(ϕX.Ws, ϕY.Ws)) + sum(K_otimes.(kinX, kinY)) +
+            H1 =  -μ * sum(K_otimes.(ϕX.Ws, ϕY.Ws)) + k0 * sum(K_otimes.(kinX, kinY)) +
                  c * sum(K_otimes.(ψ.Rs .* ϕX.Ws .+ ϕX.Ws .* ψ.Rs, ψ.Rs .* ϕY.Ws .+ ϕY.Ws .* ψ.Rs)) 
 
             H_mat[ix, iy] = tr(expK * H1)
@@ -192,94 +212,139 @@ function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0)
 
             H_mat[ix, iy] += C2z(op_Hψ, sum(K_otimes.(ϕX.Ws, ϕY.Ws))) 
             H_mat[ix, iy] += C2b(-μ * sum(K_otimes.(ψ.Rs, ϕY.Ws)) +
-                                sum(K_otimes.(QR_commutator, kinY)) +
-                                sum(K_otimes.(ψ.Rs .* ψ.Rs, ψ.Rs .* ϕY.Ws + ϕY.Ws .* ψ.Rs)), 
+                                k0 * sum(K_otimes.(QR_commutator, kinY)) +
+                                c * sum(K_otimes.(ψ.Rs .* ψ.Rs, ψ.Rs .* ϕY.Ws + ϕY.Ws .* ψ.Rs)), 
                                 K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs)))
             H_mat[ix, iy] += C2a(-μ * sum(K_otimes.(ϕX.Ws, ψ.Rs)) +
-                                sum(K_otimes.(kinX, QR_commutator)) +
-                                sum(K_otimes.(ψ.Rs .* ϕX.Ws + ϕX.Ws .* ψ.Rs, ψ.Rs .* ψ.Rs)), 
+                                k0 * sum(K_otimes.(kinX, QR_commutator)) +
+                                c * sum(K_otimes.(ψ.Rs .* ϕX.Ws + ϕX.Ws .* ψ.Rs, ψ.Rs .* ψ.Rs)), 
                                 K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)))
 
-            Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 0
-        end 
+        end
         X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 0
+        @printf "H_mat completed %.4f \r" (ix / χ^2) 
     end
     return L*H_mat  
 end
 
-function Kac_Moody_gen(ψ::CMPSData, q::Real, L::Real)
-    P = gauge_fixing_map(ψ)
-    K = K_mat(ψ, ψ)
-    Id = id(ℂ^get_χ(ψ))
-    expK, _ = finite_env(K, L)
-    C2 = Coeff2(K, -q, L)
-
-    V = zeros(ComplexF64, χ^2)
-    X = zeros(χ, χ)
-    for ix in 1:χ^2
-        X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 1
-        ϕX = ExcitationData(P, X)
-
-        V[ix] = C2(sum(K_otimes.(ψ.Rs, ψ.Rs)), K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs)))
-        V[ix] += tr(expK * sum(K_otimes.(ϕX.Ws, ψ.Rs)))
-
-        X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 0
-    end
-    return L*V
-end
-
-function Kac_Moody_gen(ψ::CMPSData, pX::Real, pY::Real, L::Real)
-
-    P = gauge_fixing_map(ψ)
-    K = K_mat(ψ, ψ)
-    expK, _ = finite_env(K, L)
-
+function Kac_Moody_gen(ψ::CMPSData, V::Vector, q::Real, L::Real, v::Real, K::Real, ρ0::Real)
+    P = gauge_fixing_map(ψ, L)
     χ = get_χ(ψ)
-
-    X = zeros(χ, χ)
-    Y = zeros(χ, χ)
     Id = id(ℂ^χ)
-    N_mat = zeros(ComplexF64, χ^2, χ^2)
+    Kmat = K_mat(ψ, ψ)
+    expK, _ = finite_env(Kmat, L)
+    C2 = Coeff2(Kmat, -q, L)
 
-    C2a = Coeff2(K, pY, L)
-    C2z = Coeff2(K, pY - pX, L)
-    C2b = Coeff2(K, -pX, L)
-    C3a = Coeff3(K, pY - pX, pY, L)
-    C3b = Coeff3(K, pX - pY, -pY, L)
+    commQR = Ref(ψ.Q) .* ψ.Rs .- ψ.Rs .* Ref(ψ.Q)
+    tensor1ρ = sum(K_otimes.(ψ.Rs, ψ.Rs))
+    tensor1j = sum(K_otimes.(ψ.Rs, commQR) .- K_otimes.(commQR, ψ.Rs))
 
-    op_Nψ = sum(K_otimes.(ψ.Rs, ψ.Rs)) 
-
+    X = zeros(ComplexF64, χ, χ)
     for ix in 1:χ^2
-        X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 1
-        ϕX = ExcitationData(P, X)
-        for iy in 1:χ^2
-            Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 1
-            ϕY = ExcitationData(P, Y)
-
-            N_mat[ix, iy] = tr(expK * sum(K_otimes.(ϕX.Ws, ϕY.Ws))) +
-                            C3a(op_Nψ, 
-                               K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs)),
-                               K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws))
-                               ) +
-                            C3b(op_Nψ, 
-                               K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)),
-                               K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))
-                               ) +
-                            C2z(op_Nψ, sum(K_otimes.(ϕX.Ws, ϕY.Ws))) +
-                            C2b(sum(K_otimes.(ψ.Rs, ϕY.Ws)), 
-                               K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))) +
-                            C2a(sum(K_otimes.(ϕX.Ws, ψ.Rs)), 
-                               K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)))
-
-            Y[(iy-1) ÷ χ + 1, (iy - 1) % χ + 1] = 0
-        end 
-        X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = 0
+        X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = V[ix]
     end
-    return L*N_mat  
+    ϕX = ExcitationData(P, X)
+
+    tensor2ρ = sum(K_otimes.(ϕX.Ws, ψ.Rs))
+    Ktensor = Ref(ϕX.V) .* ψ.Rs .- ψ.Rs .* Ref(ϕX.V) .+ 
+        Ref(ψ.Q) .* ϕX.Ws .- ϕX.Ws .* Ref(ψ.Q) .+ 
+        (im * q) .* ϕX.Ws
+    tensor2j = sum(K_otimes.(ϕX.Ws, commQR) .- K_otimes.(Ktensor, ψ.Rs))
+
+    ovlpρ = C2(tensor1ρ, K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))) + tr(expK * tensor2ρ)
+    ovlpj = C2(tensor1j, K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))) + tr(expK * tensor2j)
+
+    return L*ovlpρ / sqrt(K), -im*L*ovlpj / v / sqrt(K)
+end
+
+function Kac_Moody_gen(ψ::CMPSData, VX::Vector, VY::Vector, pX::Real, pY::Real, L::Real, v::Real, K::Real, ρ0::Real)
+
+    P = gauge_fixing_map(ψ, L)
+    χ = get_χ(ψ)
+    Id = id(ℂ^χ)
+    Kmat = K_mat(ψ, ψ)
+    expK, _ = finite_env(Kmat, L)
+
+    C2a = Coeff2(Kmat, pY, L)
+    C2z = Coeff2(Kmat, pY - pX, L)
+    C2b = Coeff2(Kmat, -pX, L)
+    C3a = Coeff3(Kmat, pY - pX, pY, L)
+    C3b = Coeff3(Kmat, pX - pY, -pY, L)
+
+    X = zeros(ComplexF64, χ, χ)
+    Y = zeros(ComplexF64, χ, χ)
+    for ix in 1:χ^2
+        X[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = VX[ix]
+    end
+    for ix in 1:χ^2
+        Y[(ix-1) ÷ χ + 1, (ix - 1) % χ + 1] = VY[ix]
+    end
+    ϕX = ExcitationData(P, X)
+    ϕY = ExcitationData(P, Y)
+
+    commQR = Ref(ψ.Q) .* ψ.Rs .- ψ.Rs .* Ref(ψ.Q)
+    KX = Ref(ϕX.V) .* ψ.Rs .- ψ.Rs .* Ref(ϕX.V) .+ 
+        Ref(ψ.Q) .* ϕX.Ws .- ϕX.Ws .* Ref(ψ.Q) .+ 
+        (im * pX) .* ϕX.Ws
+    KY = Ref(ϕY.V) .* ψ.Rs .- ψ.Rs .* Ref(ϕY.V) .+ 
+        Ref(ψ.Q) .* ϕY.Ws .- ϕY.Ws .* Ref(ψ.Q) .+ 
+        (im * pY) .* ϕY.Ws
+
+    tensor1ρ = sum(K_otimes.(ψ.Rs, ψ.Rs))
+    tensor1j = sum(K_otimes.(ψ.Rs, commQR) .- K_otimes.(commQR, ψ.Rs))
+
+    tensor2ρ = sum(K_otimes.(ϕX.Ws, ψ.Rs)) 
+    tensor2j = sum(K_otimes.(ϕX.Ws, commQR) .- K_otimes.(KX, ψ.Rs))
+
+    tensor3ρ = sum(K_otimes.(ψ.Rs, ϕY.Ws)) 
+    tensor3j = sum(K_otimes.(ψ.Rs, KY) .- K_otimes.(commQR, ϕX.Ws))
+
+    tensor4ρ = sum(K_otimes.(ϕX.Ws, ϕY.Ws)) 
+    tensor4j = sum(K_otimes.(ϕX.Ws, KY) .- K_otimes.(KX, ϕY.Ws))
+
+    ovlpρ = tr(expK * tensor4ρ) +
+            C3a(tensor1ρ, 
+               K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs)),
+               K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws))
+               ) +
+            C3b(tensor1ρ, 
+               K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)),
+               K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))
+               ) +
+            C2z(tensor1ρ, sum(K_otimes.(ϕX.Ws, ϕY.Ws))) +
+            C2b(tensor3ρ, 
+               K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))) +
+            C2a(tensor2ρ, 
+               K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)))
+    ovlpj = tr(expK * tensor4j) +
+            C3a(tensor1j, 
+               K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs)),
+               K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws))
+               ) +
+            C3b(tensor1j, 
+               K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)),
+               K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))
+               ) +
+            C2z(tensor1j, sum(K_otimes.(ϕX.Ws, ϕY.Ws))) +
+            C2b(tensor3j, 
+               K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))) +
+            C2a(tensor2j, 
+               K_otimes(Id, ϕY.V) + sum(K_otimes.(ψ.Rs, ϕY.Ws)))
+
+    return L*ovlpρ / sqrt(K), -im*L*ovlpj / v / sqrt(K)  
 
 end
 
-effective_N(ψ3, 0, L)
-effective_H(ψ3, 0, L; c=1.0, μ=2.0)
-Kac_Moody_gen(ψ3, pi/L, L)
-Kac_Moody_gen(ψ3, pi/L, pi/L, L)
+## TODO. ψ has to be normalized. Why???
+#_, α = finite_env(K_mat(ψ2, ψ2), L)
+#ψ2 = rescale(ψ2, -real(α), L)
+#
+#N1 = effective_N(ψ2, 0, L)
+#H1 = effective_H(ψ2, 0, L; c=1.0, μ=2.0)
+#
+#eigen(Hermitian(N1))
+
+# save data. 
+# solve general eigenvalue problem
+
+
