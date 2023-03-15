@@ -28,6 +28,12 @@ Tullio = "bc48ee85-29a4-5162-ae0b-a64e1601d4bc"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
+ChainRules = "1"
+ChainRulesCore = "1"
+FastGaussQuadrature = "0.5"
+OptimKit = "0.3"
+Revise = "3"
+TensorOperations = "3"
 CairoMakie = "0.10"
 ChainRules = "1"
 ChainRulesCore = "1"
