@@ -137,23 +137,30 @@ function ChainRulesCore.rrule(::typeof(finite_env), K::TensorMap{ComplexSpace}, 
     Ws = Ws .- ln_of_norm / L
 
     function finite_env_pushback(f̄wd)
-        ēxpK, l̄n_norm = f̄wd # TODO. now only include ēxpK. add ln_norm pushback 
-        if W.data isa TensorKit.SortedVectorDict
-            # TODO. symmetric tensor?
-            error("symmetric tensor. not implemented")
-        end
-        function coeff(a::Number, b::Number) 
-            if a ≈ b
-                return L*exp(a*L)
-            else 
-                return (exp(a*L) - exp(b*L)) / (a - b)
-            end
-        end
-        M = UR' * ēxpK * UL'
-        M1 = similar(M)
-        copyto!(M1.data, M.data .* coeff.(Ws', conj.(Ws)))
-        K̄ = UL' * M1 * UR' - L * tr(ēxpK * expK') * expK'
+        ēxpK, l̄n_norm = f̄wd 
+       
+        K̄ = zero(K)
 
+        if ēxpK != ZeroTangent()
+            if W.data isa TensorKit.SortedVectorDict
+                # TODO. symmetric tensor
+                error("symmetric tensor. not implemented")
+            end
+            function coeff(a::Number, b::Number) 
+                if a ≈ b
+                    return L*exp(a*L)
+                else 
+                    return (exp(a*L) - exp(b*L)) / (a - b)
+                end
+            end
+            M = UR' * ēxpK * UL'
+            M1 = similar(M)
+            copyto!(M1.data, M.data .* coeff.(Ws', conj.(Ws)))
+            K̄ += UL' * M1 * UR' - L * tr(ēxpK * expK') * expK'
+        end
+        if l̄n_norm != ZeroTangent()
+            K̄ += l̄n_norm * L * expK'
+        end
         return NoTangent(), K̄, NoTangent()
     end 
     return (expK, ln_of_norm), finite_env_pushback
