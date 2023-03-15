@@ -18,7 +18,7 @@ function lieb_liniger_ground_state(c::Real, μ::Real, L::Real, ψ0::Union{CMPSDa
     end
 
     function inner(ψ, ψ1::CMPSData, ψ2::CMPSData)
-        #return real(dot(ψ1.Q, ψ2.Q) + sum(dot.(ψ1.Rs, ψ2.Rs))) #TODO. clarify the cases with or withou factor of 2. depends on how to define the complex gradient
+        # be careful the cases with or without a factor of 2. depends on how to define the complex gradient
         return real(sum(dot.(ψ1.Rs, ψ2.Rs))) 
     end
 
