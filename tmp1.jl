@@ -23,3 +23,13 @@ for ix in 1:100
     f2 = (ln_ovlp(ψ2, T, ψ2, β) - ln_ovlp(ψ2, ψ2, β)) / (-β)
     @show ix, f2
 end
+
+TAF = CMPO(Γ*σx, [-σz], [σz], fill(zero2, 1, 1))
+ψ = CMPSData(Γ*σx, [σz])
+
+for ix in 1:100 
+    Tψ = left_canonical(TAF*ψ)[2]
+    ψ = compress(Tψ, 4, β; tol=1e-6, verbosity=0, init=ψ)
+    f = real(ln_ovlp(ψ, TAF, ψ, β) - ln_ovlp(ψ, ψ, β)) / (-β)
+    @show ix, f
+end

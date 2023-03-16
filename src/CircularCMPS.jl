@@ -61,7 +61,7 @@ export θ2,
        Kac_Moody_gen
 
 # cmpo.jl 
-export AbstractCMPO, CMPO, ln_ovlp, compress
+export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum
 
 # cMPS code for continuous Hamiltonians
 include("utils.jl");

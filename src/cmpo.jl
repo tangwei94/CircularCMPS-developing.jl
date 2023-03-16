@@ -85,7 +85,7 @@ function ln_ovlp(ϕ::CMPSData, T::CMPO, ψ::CMPSData, L::Real)
     return finite_env(ϕ * (T * ψ), L)[2]
 end
 
-function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-8, init=nothing)
+function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-8, verbosity::Integer=1, init=nothing, ϵ::Real=1e-6)
     # TODO. wrap
     if χ >= get_χ(ψ)
         @warn "no need to compress"
@@ -113,6 +113,7 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     if init !== nothing && _f(init) < _f(ψ1)
         ψ1 = init
     end
+    ψ1 = ψ1 + ϵ * CMPSData(rand, χ, get_d(ψ)) #perturb
 
     function _fg(ϕ::CMPSData)
         fvalue = _f(ϕ)
@@ -161,7 +162,7 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     end
     transport!(v, x, d, α, xnew) = v
     
-    optalg_LBFGS = LBFGS(;maxiter=maxiter, gradtol=tol, verbosity=2)
+    optalg_LBFGS = LBFGS(;maxiter=maxiter, gradtol=tol, verbosity=verbosity)
 
     ψ1 = left_canonical(ψ1)[2]
     ψ1, ln_fidel, grad, numfg, history = optimize(_fg, ψ1, optalg_LBFGS; retract = retract,
@@ -171,4 +172,21 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
                                     );
 
     return ψ1#, ln_fidel, grad, numfg, history 
+end
+
+# only implemented for plain tensors
+function direct_sum(A::MPSBondTensor, B::MPSBondTensor)
+    χA, χB = dim(_firstspace(A)), dim(_firstspace(B))
+
+    A_oplus_B = TensorMap(zeros, ComplexF64, ℂ^(χA+χB), ℂ^(χA+χB))
+    A_oplus_B.data[1:χA, 1:χA] = A.data
+    A_oplus_B.data[1+χA:end, 1+χA:end] = B.data
+    return A_oplus_B
+end
+
+function direct_sum(ψ1::CMPSData, ψ2::CMPSData; α::Real=0)
+    Id = id(domain(ψ2.Q))
+    Q = direct_sum(ψ1.Q, ψ2.Q + α*Id)
+    Rs = direct_sum.(ψ1.Rs, ψ2.Rs)
+    return CMPSData(Q, Rs)
 end
