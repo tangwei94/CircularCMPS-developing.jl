@@ -17,6 +17,32 @@ function Base.:*(M::Matrix{<:AbstractTensorMap}, v::Vector{<:AbstractTensorMap})
     return Mv
 end
 
+function Base.:*(v::Vector{<:AbstractTensorMap}, M::Matrix{<:AbstractTensorMap})
+    vM = AbstractTensorMap[]
+    for ix in eachindex(v)
+        push!(vM, sum(v .⊗ M[:, ix]))
+    end
+    return vM
+end
+
+function Base.:*(M::Matrix{<:AbstractTensorMap}, N::Matrix{<:AbstractTensorMap})
+    diml, dimr = size(M)[1], size(N)[2]
+    MN = Matrix{AbstractTensorMap}(undef, diml, dimr)
+    for ix in 1:diml, iy in 1:dimr
+        MN[ix, iy] = sum(M[ix, :] .⊗ N[:, iy])
+    end
+    return MN
+end
+
+function outer(v1::Vector{<:AbstractTensorMap}, v2::Vector{<:AbstractTensorMap})
+    diml, dimr = length(v1), length(v2)
+    v1v2 = Matrix{AbstractTensorMap}(undef, diml, dimr)
+    for ix in 1:diml, iy in 1:dimr
+        v1v2[ix, iy] = v1[ix] ⊗ v2[iy]
+    end
+    return v1v2
+end
+
 #function Base.:*(v::Vector{<:AbstractTensorMap}, M::Matrix{<:AbstractTensorMap})
 #    Mv = AbstractTensorMap[]
 #    for ix in eachindex(v)
@@ -44,6 +70,27 @@ function Base.:*(T::CMPO, ψ::CMPSData)
     Q = t_fuse * Q * t_fuse'
     Rs = Ref(t_fuse) .* Rs .* Ref(t_fuse')
     return CMPSData(Q, Rs)
+end
+
+function Base.:*(T1::CMPO, T2::CMPO)
+
+    χ1, χ2 = get_χ(T1), get_χ(T2)
+    χ = χ1 * χ2
+    
+    t_fuse = isomorphism(ℂ^χ, ℂ^χ1*ℂ^χ2)
+    Id1 = id(_firstspace(T1.Q))
+    Id2 = id(_firstspace(T2.Q))
+
+    Q = sum(T1.Rs .⊗ T2.Ls) + Id1 ⊗ T2.Q + T1.Q ⊗ Id2
+    Ls = T1.Ls .⊗ Ref(Id2) + T1.Ps * T2.Ls 
+    Rs = Ref(Id1) .⊗ T2.Rs + T1.Rs * T2.Ps 
+    Ps = T1.Ps * T2.Ps
+    
+    Q = t_fuse * Q * t_fuse'
+    Rs = Ref(t_fuse) .* Rs .* Ref(t_fuse')
+    Ls = Ref(t_fuse) .* Ls .* Ref(t_fuse')
+    Ps = Ref(t_fuse) .* Ps .* Ref(t_fuse')
+    return CMPO(Q, Ls, Rs, Ps) 
 end
 
 #"""
