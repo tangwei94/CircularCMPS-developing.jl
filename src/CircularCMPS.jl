@@ -60,6 +60,9 @@ export θ2,
        effective_H, 
        Kac_Moody_gen
 
+# optim_alg.jl 
+export CircularCMPSRiemannian, minimize
+
 # cmpo.jl 
 export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum
 
@@ -72,6 +75,7 @@ include("ground_state.jl")
 include("excited_state.jl");
 
 # cMPO code
+include("optim_alg.jl")
 include("cmpo.jl")
 
 end

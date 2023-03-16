@@ -133,7 +133,7 @@ function ln_ovlp(ϕ::CMPSData, T::CMPO, ψ::CMPSData, L::Real)
 end
 
 function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-8, verbosity::Integer=1, init=nothing, ϵ::Real=1e-6)
-    # TODO. wrap
+
     if χ >= get_χ(ψ)
         @warn "no need to compress"
         return ψ
@@ -142,6 +142,20 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     K = ψ * ψ
     expK, ln_norm = finite_env(K, L)
 
+    # target function for variational optimization
+    function _f(ϕ::CMPSData)
+        return real(-ln_ovlp(ϕ, ψ, L) - ln_ovlp(ψ, ϕ, L) + ln_ovlp(ϕ, ϕ, L) + ln_norm)
+    end
+    function _fg(ϕ::CMPSData)
+        fvalue = _f(ϕ)
+        ∂ϕ = _f'(ϕ)
+        dQ = zero(∂ϕ.Q) 
+        dRs = ∂ϕ.Rs .- ϕ.Rs .* Ref(∂ϕ.Q)
+
+        return fvalue, CMPSData(dQ, dRs) 
+    end
+
+    # initial guess
     @tensor M[-1; -2] := expK[1 -1 ; 1 -2]
     _, U = eig(M; sortby=λ->-real(λ))
     P = isometry(space(ψ), ℂ^χ)
@@ -151,75 +165,106 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     Q1 = U1inv * ψ.Q * U1
     Rs1 = Ref(U1inv) .* ψ.Rs .* Ref(U1)
     ψ1 = CMPSData(Q1, Rs1)
-
-    # variational optimization
-    function _f(ϕ::CMPSData)
-        return real(-ln_ovlp(ϕ, ψ, L) - ln_ovlp(ψ, ϕ, L) + ln_ovlp(ϕ, ϕ, L) + ln_norm)
-    end
-
     if init !== nothing && _f(init) < _f(ψ1)
         ψ1 = init
     end
     ψ1 = ψ1 + ϵ * CMPSData(rand, χ, get_d(ψ)) #perturb
 
-    function _fg(ϕ::CMPSData)
-        fvalue = _f(ϕ)
-        ∂ϕ = _f'(ϕ)
-        dQ = zero(∂ϕ.Q) 
-        dRs = ∂ϕ.Rs .- ϕ.Rs .* Ref(∂ϕ.Q)
-
-        return fvalue, CMPSData(dQ, dRs) 
-    end
-    function inner(ϕ, ϕ1::CMPSData, ϕ2::CMPSData)
-        return real(sum(dot.(ϕ1.Rs, ϕ2.Rs)))
-    end
-    function retract(ϕ::CMPSData, dϕ::CMPSData, α::Real)
-        Rs = ϕ.Rs .+ α .* dϕ.Rs 
-        Q = ϕ.Q - α * sum(adjoint.(ϕ.Rs) .* dϕ.Rs) - 0.5 * α^2 * sum(adjoint.(dϕ.Rs) .* dϕ.Rs)
-        ϕ1 = CMPSData(Q, Rs)
-        return ϕ1, dϕ
-    end
-    function scale!(dϕ::CMPSData, α::Number)
-        dϕ.Q = dϕ.Q * α
-        dϕ.Rs .= dϕ.Rs .* α
-        return dϕ
-    end
-    function add!(dϕ::CMPSData, dϕ1::CMPSData, α::Number)
-        dϕ.Q += dϕ1.Q * α
-        dϕ.Rs .+= dϕ1.Rs .* α
-        return dϕ
-    end
-    function precondition(ϕ::CMPSData, dϕ::CMPSData)
-        fK = transfer_matrix(ϕ, ϕ)
-
-        # solve the fixed point equation
-        init = similar(ϕ.Q, _firstspace(ϕ.Q)←_firstspace(ϕ.Q))
-        randomize!(init);
-        _, vrs, _ = eigsolve(fK, init, 1, :LR)
-        vr = vrs[1]
-
-        δ = inner(ϕ, dϕ, dϕ)
-
-        P = herm_reg_inv(vr, max(1e-12, 1e-3*δ)) 
-
-        Q = dϕ.Q  
-        Rs = dϕ.Rs .* Ref(P)
-
-        return CMPSData(Q, Rs)
-    end
-    transport!(v, x, d, α, xnew) = v
-    
-    optalg_LBFGS = LBFGS(;maxiter=maxiter, gradtol=tol, verbosity=verbosity)
-
-    ψ1 = left_canonical(ψ1)[2]
-    ψ1, ln_fidel, grad, numfg, history = optimize(_fg, ψ1, optalg_LBFGS; retract = retract,
-                                    precondition = precondition,
-                                    inner = inner, transport! =transport!,
-                                    scale! = scale!, add! = add!
-                                    );
+    # optimization 
+    optalg = CircularCMPSRiemannian(maxiter, tol, verbosity)
+    ψ1, ln_fidel, grad, numfg, history = minimize(_fg, ψ1, optalg)
 
     return ψ1#, ln_fidel, grad, numfg, history 
 end
+
+
+#function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-8, verbosity::Integer=1, init=nothing, ϵ::Real=1e-6)
+#    if χ >= get_χ(ψ)
+#        @warn "no need to compress"
+#        return ψ
+#    end
+#
+#    K = ψ * ψ
+#    expK, ln_norm = finite_env(K, L)
+#
+#    @tensor M[-1; -2] := expK[1 -1 ; 1 -2]
+#    _, U = eig(M; sortby=λ->-real(λ))
+#    P = isometry(space(ψ), ℂ^χ)
+#    U1 = U * P
+#    U1inv = P' * inv(U) 
+#
+#    Q1 = U1inv * ψ.Q * U1
+#    Rs1 = Ref(U1inv) .* ψ.Rs .* Ref(U1)
+#    ψ1 = CMPSData(Q1, Rs1)
+#
+#    # variational optimization
+#    function _f(ϕ::CMPSData)
+#        return real(-ln_ovlp(ϕ, ψ, L) - ln_ovlp(ψ, ϕ, L) + ln_ovlp(ϕ, ϕ, L) + ln_norm)
+#    end
+#
+#    if init !== nothing && _f(init) < _f(ψ1)
+#        ψ1 = init
+#    end
+#    ψ1 = ψ1 + ϵ * CMPSData(rand, χ, get_d(ψ)) #perturb
+#
+#    function _fg(ϕ::CMPSData)
+#        fvalue = _f(ϕ)
+#        ∂ϕ = _f'(ϕ)
+#        dQ = zero(∂ϕ.Q) 
+#        dRs = ∂ϕ.Rs .- ϕ.Rs .* Ref(∂ϕ.Q)
+#
+#        return fvalue, CMPSData(dQ, dRs) 
+#    end
+#    function inner(ϕ, ϕ1::CMPSData, ϕ2::CMPSData)
+#        return real(sum(dot.(ϕ1.Rs, ϕ2.Rs)))
+#    end
+#    function retract(ϕ::CMPSData, dϕ::CMPSData, α::Real)
+#        Rs = ϕ.Rs .+ α .* dϕ.Rs 
+#        Q = ϕ.Q - α * sum(adjoint.(ϕ.Rs) .* dϕ.Rs) - 0.5 * α^2 * sum(adjoint.(dϕ.Rs) .* dϕ.Rs)
+#        ϕ1 = CMPSData(Q, Rs)
+#        return ϕ1, dϕ
+#    end
+#    function scale!(dϕ::CMPSData, α::Number)
+#        dϕ.Q = dϕ.Q * α
+#        dϕ.Rs .= dϕ.Rs .* α
+#        return dϕ
+#    end
+#    function add!(dϕ::CMPSData, dϕ1::CMPSData, α::Number)
+#        dϕ.Q += dϕ1.Q * α
+#        dϕ.Rs .+= dϕ1.Rs .* α    ψ1 = left_canonical(ψ1)[2]
+#        return dϕ
+#    end
+#    function precondition(ϕ::CMPSData, dϕ::CMPSData)
+#        fK = transfer_matrix(ϕ, ϕ)
+#
+#        # solve the fixed point equation
+#        init = similar(ϕ.Q, _firstspace(ϕ.Q)←_firstspace(ϕ.Q))
+#        randomize!(init);
+#        _, vrs, _ = eigsolve(fK, init, 1, :LR)
+#        vr = vrs[1]
+#
+#        δ = inner(ϕ, dϕ, dϕ)
+#
+#        P = herm_reg_inv(vr, max(1e-12, 1e-3*δ)) 
+#
+#        Q = dϕ.Q  
+#        Rs = dϕ.Rs .* Ref(P)
+#
+#        return CMPSData(Q, Rs)
+#    end
+#    transport!(v, x, d, α, xnew) = v
+#    
+#    optalg_LBFGS = LBFGS(;maxiter=maxiter, gradtol=tol, verbosity=verbosity)
+#
+#    ψ1 = left_canonical(ψ1)[2]
+#    ψ1, ln_fidel, grad, numfg, history = optimize(_fg, ψ1, optalg_LBFGS; retract = retract,
+#                                    precondition = precondition,
+#                                    inner = inner, transport! =transport!,
+#                                    scale! = scale!, add! = add!
+#                                    );
+#
+#    return ψ1#, ln_fidel, grad, numfg, history 
+#end
 
 # only implemented for plain tensors
 function direct_sum(A::MPSBondTensor, B::MPSBondTensor)
