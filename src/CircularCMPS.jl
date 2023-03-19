@@ -66,6 +66,9 @@ export CircularCMPSRiemannian, minimize, leading_boundary_cmps
 # cmpo.jl 
 export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum, W_mul
 
+# cmpo_zoo.jl
+export ising_cmpo, xxz_af_cmpo, heisenberg_j1j2_cmpo
+
 # cMPS code for continuous Hamiltonians
 include("utils.jl");
 include("cmps.jl");
@@ -75,8 +78,9 @@ include("ground_state.jl")
 include("excited_state.jl");
 
 # cMPO code
-include("optim_alg.jl")
-include("cmpo.jl")
-include("cmpoAD.jl")
+include("optim_alg.jl");
+include("cmpo.jl");
+include("cmpoAD.jl");
+include("cmpo_zoo.jl");
 
 end
