@@ -181,93 +181,27 @@ function leading_boundary_cmps(T::CMPO, init::CMPSData, β::Real; maxiter::Integ
 
 end
 
-#function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-8, verbosity::Integer=1, init=nothing, ϵ::Real=1e-6)
-#    if χ >= get_χ(ψ)
-#        @warn "no need to compress"
-#        return ψ
-#    end
-#
-#    K = ψ * ψ
-#    expK, ln_norm = finite_env(K, L)
-#
-#    @tensor M[-1; -2] := expK[1 -1 ; 1 -2]
-#    _, U = eig(M; sortby=λ->-real(λ))
-#    P = isometry(space(ψ), ℂ^χ)
-#    U1 = U * P
-#    U1inv = P' * inv(U) 
-#
-#    Q1 = U1inv * ψ.Q * U1
-#    Rs1 = Ref(U1inv) .* ψ.Rs .* Ref(U1)
-#    ψ1 = CMPSData(Q1, Rs1)
-#
-#    # variational optimization
-#    function _f(ϕ::CMPSData)
-#        return real(-ln_ovlp(ϕ, ψ, L) - ln_ovlp(ψ, ϕ, L) + ln_ovlp(ϕ, ϕ, L) + ln_norm)
-#    end
-#
-#    if init !== nothing && _f(init) < _f(ψ1)
-#        ψ1 = init
-#    end
-#    ψ1 = ψ1 + ϵ * CMPSData(rand, χ, get_d(ψ)) #perturb
-#
-#    function _fg(ϕ::CMPSData)
-#        fvalue = _f(ϕ)
-#        ∂ϕ = _f'(ϕ)
-#        dQ = zero(∂ϕ.Q) 
-#        dRs = ∂ϕ.Rs .- ϕ.Rs .* Ref(∂ϕ.Q)
-#
-#        return fvalue, CMPSData(dQ, dRs) 
-#    end
-#    function inner(ϕ, ϕ1::CMPSData, ϕ2::CMPSData)
-#        return real(sum(dot.(ϕ1.Rs, ϕ2.Rs)))
-#    end
-#    function retract(ϕ::CMPSData, dϕ::CMPSData, α::Real)
-#        Rs = ϕ.Rs .+ α .* dϕ.Rs 
-#        Q = ϕ.Q - α * sum(adjoint.(ϕ.Rs) .* dϕ.Rs) - 0.5 * α^2 * sum(adjoint.(dϕ.Rs) .* dϕ.Rs)
-#        ϕ1 = CMPSData(Q, Rs)
-#        return ϕ1, dϕ
-#    end
-#    function scale!(dϕ::CMPSData, α::Number)
-#        dϕ.Q = dϕ.Q * α
-#        dϕ.Rs .= dϕ.Rs .* α
-#        return dϕ
-#    end
-#    function add!(dϕ::CMPSData, dϕ1::CMPSData, α::Number)
-#        dϕ.Q += dϕ1.Q * α
-#        dϕ.Rs .+= dϕ1.Rs .* α    ψ1 = left_canonical(ψ1)[2]
-#        return dϕ
-#    end
-#    function precondition(ϕ::CMPSData, dϕ::CMPSData)
-#        fK = transfer_matrix(ϕ, ϕ)
-#
-#        # solve the fixed point equation
-#        init = similar(ϕ.Q, _firstspace(ϕ.Q)←_firstspace(ϕ.Q))
-#        randomize!(init);
-#        _, vrs, _ = eigsolve(fK, init, 1, :LR)
-#        vr = vrs[1]
-#
-#        δ = inner(ϕ, dϕ, dϕ)
-#
-#        P = herm_reg_inv(vr, max(1e-12, 1e-3*δ)) 
-#
-#        Q = dϕ.Q  
-#        Rs = dϕ.Rs .* Ref(P)
-#
-#        return CMPSData(Q, Rs)
-#    end
-#    transport!(v, x, d, α, xnew) = v
-#    
-#    optalg_LBFGS = LBFGS(;maxiter=maxiter, gradtol=tol, verbosity=verbosity)
-#
-#    ψ1 = left_canonical(ψ1)[2]
-#    ψ1, ln_fidel, grad, numfg, history = optimize(_fg, ψ1, optalg_LBFGS; retract = retract,
-#                                    precondition = precondition,
-#                                    inner = inner, transport! =transport!,
-#                                    scale! = scale!, add! = add!
-#                                    );
-#
-#    return ψ1#, ln_fidel, grad, numfg, history 
-#end
+function variance(T::CMPO, ψ::CMPSData, β::Real)
+    Tψ = T*ψ
+    var = real(ln_ovlp(Tψ, Tψ, β) + ln_ovlp(ψ, ψ, β) - 2 * ln_ovlp(ψ, Tψ, β))
+    return var 
+end
+
+function free_energy(T::CMPO, ψL::CMPSData, ψ::CMPSData, β::Real)
+    f = real(ln_ovlp(ψL, T, ψ, β) - ln_ovlp(ψL, ψ, β)) / (-β)
+    return f
+end
+
+function energy(T::CMPO, ψL::CMPSData, ψ::CMPSData, β::Real)
+    Tψ = T*ψ
+    K_leg3 = ψL * Tψ
+    K_leg2 = ψL * ψ
+
+    expK_leg3 = finite_env(K_leg3, β)[1]
+    expK_leg2 = finite_env(K_leg2, β)[1]
+
+    return tr(expK_leg3 * K_leg3) - tr(expK_leg2 * K_leg2)
+end
 
 # only implemented for plain tensors
 function direct_sum(A::MPSBondTensor, B::MPSBondTensor)

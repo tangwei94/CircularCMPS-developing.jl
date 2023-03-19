@@ -64,7 +64,7 @@ export θ2,
 export CircularCMPSRiemannian, minimize, leading_boundary_cmps
 
 # cmpo.jl 
-export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum, W_mul
+export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum, W_mul, variance, free_energy, energy
 
 # cmpo_zoo.jl
 export ising_cmpo, xxz_af_cmpo, heisenberg_j1j2_cmpo
