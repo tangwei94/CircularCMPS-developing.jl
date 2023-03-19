@@ -25,8 +25,8 @@ for χ in χs
     f, E, var = fill(-999, 3)
     for ix in steps 
         Tψ = left_canonical(T*ψ)[2]
-        #ψ = left_canonical(ψ)[2]
-        #Tψ = direct_sum(Tψ, ψ)
+        ψ = left_canonical(ψ)[2]
+        Tψ = direct_sum(Tψ, ψ)
         ψ = compress(Tψ, χ, β; tol=1e-6, maxiter=250, init=ψ)
         ψL = W_mul(Wmat, ψ)
 
