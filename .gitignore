@@ -3,3 +3,4 @@
 *.jl.mem
 /docs/build/
 tmpdata*
+J1J2/dimer_phase*.jld2
