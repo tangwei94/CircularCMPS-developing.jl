@@ -74,15 +74,15 @@ function ChainRulesCore.rrule(::typeof(get_matrices), ψ::CMPSData)
 end
 
 """
-    rrule(::typeof(CMPSData), Q::MPSBondTensor, R::MPSTensor, L::Real)
+    rrule(::Type{CMPSData}, Q::MPSBondTensor, Rs::Vector{MPSBondTensor})
 
     rrule for the constructor of `cmps`.
 """
-function ChainRulesCore.rrule(::typeof(CMPSData), Q::MPSBondTensor, R::MPSTensor)
+function ChainRulesCore.rrule(::Type{CMPSData}, Q::MPSBondTensor, Rs::Vector{<:MPSBondTensor})
     function cmps_pushback(f̄wd)
-        return NoTangent(), f̄wd.Q, f̄wd.R
+        return NoTangent(), f̄wd.Q, f̄wd.Rs
     end
-    return CMPSData(Q, R), cmps_pushback
+    return CMPSData(Q, Rs), cmps_pushback
 end
 
 """

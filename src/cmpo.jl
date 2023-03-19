@@ -10,10 +10,7 @@ end
 @inline get_χ(T::CMPO) = dim(_firstspace(T.Q))
 
 function Base.:*(M::Matrix{<:AbstractTensorMap}, v::Vector{<:AbstractTensorMap})
-    Mv = AbstractTensorMap[]
-    for ix in eachindex(v)
-        push!(Mv, sum(M[ix, :] .⊗ v))
-    end
+    Mv = [sum(M[ix, :] .⊗ v) for ix in eachindex(v)]
     return Mv
 end
 
@@ -64,11 +61,11 @@ function Base.:*(T::CMPO, ψ::CMPSData)
     Id_T = id(_firstspace(T.Q))
     Id_ψ = id(_firstspace(ψ.Q))
 
-    Q = sum(T.Rs .⊗ ψ.Rs) + Id_T ⊗ ψ.Q + T.Q ⊗ Id_ψ
-    Rs = T.Ls .⊗ Ref(Id_ψ) + T.Ps * ψ.Rs
+    Qa = sum(T.Rs .⊗ ψ.Rs) + Id_T ⊗ ψ.Q + T.Q ⊗ Id_ψ
+    Ras = T.Ls .⊗ Ref(Id_ψ) + T.Ps * ψ.Rs
     
-    Q = t_fuse * Q * t_fuse'
-    Rs = Ref(t_fuse) .* Rs .* Ref(t_fuse')
+    Q = t_fuse * Qa * t_fuse'
+    Rs = Ref(t_fuse) .* Ras .* Ref(t_fuse')
     return CMPSData(Q, Rs)
 end
 
@@ -132,7 +129,7 @@ function ln_ovlp(ϕ::CMPSData, T::CMPO, ψ::CMPSData, L::Real)
     return finite_env(ϕ * (T * ψ), L)[2]
 end
 
-function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-8, verbosity::Integer=1, init=nothing, ϵ::Real=1e-6)
+function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=250, tol::Real=1e-9, verbosity::Integer=1, init=nothing, ϵ::Real=1e-6)
 
     if χ >= get_χ(ψ)
         @warn "no need to compress"
@@ -146,14 +143,6 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     function _f(ϕ::CMPSData)
         return real(-ln_ovlp(ϕ, ψ, L) - ln_ovlp(ψ, ϕ, L) + ln_ovlp(ϕ, ϕ, L) + ln_norm)
     end
-    function _fg(ϕ::CMPSData)
-        fvalue = _f(ϕ)
-        ∂ϕ = _f'(ϕ)
-        dQ = zero(∂ϕ.Q) 
-        dRs = ∂ϕ.Rs .- ϕ.Rs .* Ref(∂ϕ.Q)
-
-        return fvalue, CMPSData(dQ, dRs) 
-    end
 
     # initial guess
     @tensor M[-1; -2] := expK[1 -1 ; 1 -2]
@@ -165,18 +154,32 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     Q1 = U1inv * ψ.Q * U1
     Rs1 = Ref(U1inv) .* ψ.Rs .* Ref(U1)
     ψ1 = CMPSData(Q1, Rs1)
-    if init !== nothing && _f(init) < _f(ψ1)
+    if init !== nothing && get_χ(init) == χ && _f(init) < _f(ψ1)
         ψ1 = init
     end
-    ψ1 = ψ1 + ϵ * CMPSData(rand, χ, get_d(ψ)) #perturb
+    ψ1 = ψ1 + ϵ * CMPSData(rand, χ, get_d(ψ1)) #perturb
 
     # optimization 
     optalg = CircularCMPSRiemannian(maxiter, tol, verbosity)
-    ψ1, ln_fidel, grad, numfg, history = minimize(_fg, ψ1, optalg)
+    ψ1, ln_fidel, grad, numfg, history = minimize(_f, ψ1, optalg)
 
     return ψ1#, ln_fidel, grad, numfg, history 
 end
 
+function leading_boundary_cmps(T::CMPO, init::CMPSData, β::Real; maxiter::Integer=250, tol::Real=1e-9, verbosity::Integer=2, ϵ::Real=1e-6)
+
+    function _f(ϕ::CMPSData)
+        return -(1/β) * real(ln_ovlp(ϕ, T, ϕ, β) - ln_ovlp(ϕ, ϕ, β))
+    end
+    ψ1 = init + ϵ * CMPSData(rand, get_χ(init), get_d(init))
+    
+    # optimization 
+    optalg = CircularCMPSRiemannian(maxiter, tol, verbosity)
+    ψ1, ln_free_energy, grad, numfg, history = minimize(_f, ψ1, optalg)
+
+    return ψ1, ln_free_energy, grad, numfg, history
+
+end
 
 #function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-8, verbosity::Integer=1, init=nothing, ϵ::Real=1e-6)
 #    if χ >= get_χ(ψ)
@@ -281,4 +284,8 @@ function direct_sum(ψ1::CMPSData, ψ2::CMPSData; α::Real=0)
     Q = direct_sum(ψ1.Q, ψ2.Q + α*Id)
     Rs = direct_sum.(ψ1.Rs, ψ2.Rs)
     return CMPSData(Q, Rs)
+end
+
+function W_mul(W::Matrix{<:Number}, ψ::CMPSData)
+    return CMPSData(ψ.Q, W * ψ.Rs)
 end

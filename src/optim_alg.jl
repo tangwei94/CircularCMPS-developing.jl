@@ -1,13 +1,21 @@
 abstract type Algorithm end 
 
-struct CircularCMPSRiemannian
-    maxiter::Int = 250
-    tol::Real = 1e-9
-    verbose::Int = 2
+struct CircularCMPSRiemannian <: Algorithm
+    maxiter::Int
+    tol::Real 
+    verbosity::Int
 end
 
-function minimize(fg, init::CMPSData, alg::CircularCMPSRiemannian)
+function minimize(_f, init::CMPSData, alg::CircularCMPSRiemannian)
+    
+    function _fg(ϕ::CMPSData)
+        fvalue = _f(ϕ)
+        ∂ϕ = _f'(ϕ)
+        dQ = zero(∂ϕ.Q) 
+        dRs = ∂ϕ.Rs .- ϕ.Rs .* Ref(∂ϕ.Q)
 
+        return fvalue, CMPSData(dQ, dRs) 
+    end
     function inner(ϕ, ϕ1::CMPSData, ϕ2::CMPSData)
         return real(sum(dot.(ϕ1.Rs, ϕ2.Rs)))
     end
@@ -51,7 +59,7 @@ function minimize(fg, init::CMPSData, alg::CircularCMPSRiemannian)
 
     init = left_canonical(init)[2] # ensure the input is left canonical
 
-    ψopt, fvalue, grad, numfg, history = optimize(fg, init, optalg_LBFGS; retract=retract, precondition=precondition, inner=inner, transport!=transport!, scale!=scale!, add!=add!)
+    ψopt, fvalue, grad, numfg, history = optimize(_fg, init, optalg_LBFGS; retract=retract, precondition=precondition, inner=inner, transport! =transport!, scale! =scale!, add! =add!)
 
     return ψopt, fvalue, grad, numfg, history
 end

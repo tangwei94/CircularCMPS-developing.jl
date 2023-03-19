@@ -61,10 +61,10 @@ export θ2,
        Kac_Moody_gen
 
 # optim_alg.jl 
-export CircularCMPSRiemannian, minimize
+export CircularCMPSRiemannian, minimize, leading_boundary_cmps
 
 # cmpo.jl 
-export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum
+export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum, W_mul
 
 # cMPS code for continuous Hamiltonians
 include("utils.jl");
@@ -77,5 +77,6 @@ include("excited_state.jl");
 # cMPO code
 include("optim_alg.jl")
 include("cmpo.jl")
+include("cmpoAD.jl")
 
 end
