@@ -7,19 +7,20 @@ function inner1(ψ::CMPSData, ϕ::CMPSData)
 end
 _firstspace = CircularCMPS._firstspace
 
-ψ = CMPSData(rand, 3, 2);
+ψ = CMPSData(rand, 3, 3);
 
 L = 12.321
 
-ψrand = CMPSData(rand, 2, 2)
-result1 = compress(ψ, 2, L; init=ψrand)
-results = compress(ψ, 2, L)
+ψrand = CMPSData(rand, 2, 3)
+ψ1 = compress(ψ, 2, L; init=ψrand)
+ψ1 = compress(ψ, 2, L)
 
 expK, ln_norm = finite_env(ψ*ψ, L)
 
     # variational optimization
     function _f(ϕ::CMPSData)
-        return -real(ln_ovlp(ϕ, ψ, L) + ln_ovlp(ψ, ϕ, L) - ln_ovlp(ϕ, ϕ, L) - ln_norm)
+        #return -real(ln_ovlp(ϕ, ψ, L) + ln_ovlp(ψ, ϕ, L) - ln_ovlp(ϕ, ϕ, L) - ln_norm)
+        return -(1/β) * real(ln_ovlp(ϕ, Txy, ϕ, β) - ln_ovlp(ϕ, ϕ, β))
     end
     function _fg(ϕ::CMPSData)
         fvalue = _f(ϕ)
@@ -68,7 +69,7 @@ expK, ln_norm = finite_env(ψ*ψ, L)
     end
     transport!(v, x, d, α, xnew) = v
 
-ψ1 = left_canonical(ψ1)[2]
+ψ1 = left_canonical(ψ)[2]
 _f(ψ1)
 
 fidel, gϕ = _fg(ψ1)
