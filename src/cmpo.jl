@@ -200,7 +200,7 @@ function energy(T::CMPO, ψL::CMPSData, ψ::CMPSData, β::Real)
     expK_leg3 = finite_env(K_leg3, β)[1]
     expK_leg2 = finite_env(K_leg2, β)[1]
 
-    return tr(expK_leg3 * K_leg3) - tr(expK_leg2 * K_leg2)
+    return real(tr(expK_leg3 * K_leg3) - tr(expK_leg2 * K_leg2))
 end
 
 # only implemented for plain tensors
