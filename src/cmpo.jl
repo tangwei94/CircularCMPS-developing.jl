@@ -175,9 +175,9 @@ function leading_boundary_cmps(T::CMPO, init::CMPSData, β::Real; maxiter::Integ
     
     # optimization 
     optalg = CircularCMPSRiemannian(maxiter, tol, verbosity)
-    ψ1, ln_free_energy, grad, numfg, history = minimize(_f, ψ1, optalg)
+    ψ1, f_result, grad, numfg, history = minimize(_f, ψ1, optalg)
 
-    return ψ1, ln_free_energy, grad, numfg, history
+    return ψ1, f_result, grad, numfg, history
 
 end
 
