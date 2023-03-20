@@ -20,7 +20,7 @@ f1s, fblk1s, fsym1s, fblksym1s = Float64[], Float64[], Float64[], Float64[]
 ψ1 = ψ0
 for ix in steps 
     Tψ1 = left_canonical(T*ψ1)[2]
-    ψ1 = compress(Tψ1, χ, β; tol=1e-6, maxiter=1000, init=ψ1)
+    ψ1 = compress(Tψ1, χ, β; tol=1e-6, init=ψ1)
     ψL1 = W_mul(W, ψ1)
 
     f1 = real(ln_ovlp(ψL1, T, ψ1, β) - ln_ovlp(ψL1, ψ1, β)) / (-β)
@@ -39,7 +39,7 @@ end
 f2s, fsym2s = Float64[], Float64[]
 for ix in steps
     Tψ = left_canonical(Tblk*ψ)[2]
-    ψ = compress(Tψ, χ, β; tol=1e-6, maxiter=1000, init=ψ)
+    ψ = compress(Tψ, χ, β; tol=1e-6, init=ψ)
     ψL = W_mul(W, ψ)
 
     f2 = real(ln_ovlp(ψL, Tblk, ψ, β) - ln_ovlp(ψL, ψ, β)) / (-2*β)
@@ -55,8 +55,8 @@ f3s, fblk3s, fsym3s, fblksym3s = Float64[], Float64[], Float64[], Float64[]
 for ix in steps 
     Tψ3 = left_canonical(T*ψ3)[2]
     ψ3 = left_canonical(ψ3)[2]
-    Tψ3 = direct_sum(Tψ3, ψ3)
-    ψ3 = compress(Tψ3, χ, β; tol=1e-6, maxiter=1000, init=ψ3)
+    Tψ3 = direct_sum(Tψ3, ψ3, 0.95^ix, β)
+    ψ3 = compress(Tψ3, χ, β; tol=1e-6, init=ψ3)
     ψL3 = W_mul(W, ψ3)
 
     f3 = real(ln_ovlp(ψL3, T, ψ3, β) - ln_ovlp(ψL3, ψ3, β)) / (-β)

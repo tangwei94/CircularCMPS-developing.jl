@@ -166,7 +166,7 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=250, tol:
     return ψ1#, ln_fidel, grad, numfg, history 
 end
 
-function leading_boundary_cmps(T::CMPO, init::CMPSData, β::Real; maxiter::Integer=250, tol::Real=1e-9, verbosity::Integer=2, ϵ::Real=1e-6)
+function leading_boundary_cmps(T::CMPO, init::CMPSData, β::Real; maxiter::Integer=1000, tol::Real=1e-9, verbosity::Integer=2, ϵ::Real=1e-6)
 
     function _f(ϕ::CMPSData)
         return -(1/β) * real(ln_ovlp(ϕ, T, ϕ, β) - ln_ovlp(ϕ, ϕ, β))
@@ -187,6 +187,20 @@ function variance(T::CMPO, ψ::CMPSData, β::Real)
     return var 
 end
 
+function boundary_cmps_var(T::CMPO, init::CMPSData, β::Real; maxiter::Integer=1000, tol::Real=1e-9, verbosity::Integer=2, ϵ::Real=1e-6)
+
+    function _f(ϕ::CMPSData)
+        return variance(T, ϕ, β)
+    end
+    ψ1 = init + ϵ * CMPSData(rand, get_χ(init), get_d(init))
+    
+    # optimization 
+    optalg = CircularCMPSRiemannian(maxiter, tol, verbosity)
+    ψ1, var_result, grad, numfg, history = minimize(_f, ψ1, optalg)
+
+    return ψ1, var_result, grad, numfg, history
+end
+
 function free_energy(T::CMPO, ψL::CMPSData, ψ::CMPSData, β::Real)
     f = real(ln_ovlp(ψL, T, ψ, β) - ln_ovlp(ψL, ψ, β)) / (-β)
     return f
@@ -200,7 +214,7 @@ function energy(T::CMPO, ψL::CMPSData, ψ::CMPSData, β::Real)
     expK_leg3 = finite_env(K_leg3, β)[1]
     expK_leg2 = finite_env(K_leg2, β)[1]
 
-    return real(tr(expK_leg3 * K_leg3) - tr(expK_leg2 * K_leg2))
+    return -real(tr(expK_leg3 * K_leg3) - tr(expK_leg2 * K_leg2))
 end
 
 # only implemented for plain tensors
@@ -218,6 +232,10 @@ function direct_sum(ψ1::CMPSData, ψ2::CMPSData; α::Real=0)
     Q = direct_sum(ψ1.Q, ψ2.Q + α*Id)
     Rs = direct_sum.(ψ1.Rs, ψ2.Rs)
     return CMPSData(Q, Rs)
+end
+function direct_sum(ψ1::CMPSData, ψ2::CMPSData, Δ::Real, β::Real)
+    α = log(Δ) / (2*β)
+    return direct_sum(ψ1, ψ2; α = α)
 end
 
 function W_mul(W::Matrix{<:Number}, ψ::CMPSData)

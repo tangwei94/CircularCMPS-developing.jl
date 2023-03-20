@@ -13,7 +13,7 @@ temperature = parse(Float64, ARGS[1])
 
 ψ0 = CMPSData(T.Q, T.Ls)
 
-steps = 1:50
+steps = 1:200
 
 # power method, shift spectrum
 fs, Es, vars = Float64[], Float64[], Float64[]
@@ -26,14 +26,15 @@ for χ in χs
     for ix in steps 
         Tψ = left_canonical(T*ψ)[2]
         ψ = left_canonical(ψ)[2]
-        Tψ = direct_sum(Tψ, ψ)
-        ψ = compress(Tψ, χ, β; tol=1e-6, maxiter=250, init=ψ)
+        Tψ = direct_sum(Tψ, ψ, 0.97^ix, β)
+        ψ = compress(Tψ, χ, β; tol=1e-6, init=ψ)
         ψL = W_mul(Wmat, ψ)
 
         f = free_energy(T, ψL, ψ, β)
         E = energy(T, ψL, ψ, β)
         var = variance(T, ψ, β)
-        @show χ, ix, f, var
+        @show χ, ix, f, E, var
+        @show χ, ix, (E-f)*β, var
     end
     push!(fs, f)
     push!(Es, E)
