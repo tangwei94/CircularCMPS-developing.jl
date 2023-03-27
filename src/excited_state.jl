@@ -269,7 +269,7 @@ function Kac_Moody_gen(ψ::CMPSData, VX::Vector, VY::Vector, pX::Real, pY::Real,
     C2z = Coeff2(Kmat, pY - pX, L)
     C2b = Coeff2(Kmat, -pX, L)
     C3a = Coeff3(Kmat, pY - pX, pY, L)
-    C3b = Coeff3(Kmat, pX - pY, -pY, L)
+    C3b = Coeff3(Kmat, pY - pX, -pX, L)
 
     X = zeros(ComplexF64, χ, χ)
     Y = zeros(ComplexF64, χ, χ)
@@ -297,7 +297,7 @@ function Kac_Moody_gen(ψ::CMPSData, VX::Vector, VY::Vector, pX::Real, pY::Real,
     tensor2j = sum(K_otimes.(ϕX.Ws, commQR) .- K_otimes.(KX, ψ.Rs))
 
     tensor3ρ = sum(K_otimes.(ψ.Rs, ϕY.Ws)) 
-    tensor3j = sum(K_otimes.(ψ.Rs, KY) .- K_otimes.(commQR, ϕX.Ws))
+    tensor3j = sum(K_otimes.(ψ.Rs, KY) .- K_otimes.(commQR, ϕY.Ws))
 
     tensor4ρ = sum(K_otimes.(ϕX.Ws, ϕY.Ws)) 
     tensor4j = sum(K_otimes.(ϕX.Ws, KY) .- K_otimes.(KX, ϕY.Ws))
