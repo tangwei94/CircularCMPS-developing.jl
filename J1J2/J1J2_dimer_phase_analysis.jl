@@ -10,12 +10,14 @@ T, Wmat = heisenberg_j1j2_cmpo(J1, J2)
 
 β = 32
 
+ts = [0.01:0.01:0.09 ; 0.12:0.02:0.18]
 entropies = Float64[]
 for t in ts 
     @load "J1J2/dimer_phase_temp$(t).jld2" fs Es vars
-    S = (-Es[end] - fs[end]) / t
+    S = (Es[end-1] - fs[end-1]) / t
     push!(entropies, S)
     @show t, fs[end-1], Es[end-1], vars[end-1]
+    @show t, fs[end], Es[end], vars[end]
 end
 
 #ψ0 = CMPSData(T.Q, T.Ls)
@@ -42,8 +44,6 @@ end
 #ψL1 = W_mul(Wmat, ψ1)
 #f1 = free_energy(T, ψL1, ψ1, β)
 #E1 = energy(T, ψL1, ψ1, β)
-
-
 
 fig = Figure(backgroundcolor = :white, fontsize=18, resolution= (600, 800))
 

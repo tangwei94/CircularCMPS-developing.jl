@@ -187,7 +187,7 @@ function variance(T::CMPO, ψ::CMPSData, β::Real)
     return var 
 end
 
-function boundary_cmps_var(T::CMPO, init::CMPSData, β::Real; maxiter::Integer=1000, tol::Real=1e-9, verbosity::Integer=2, ϵ::Real=1e-6)
+function boundary_cmps_var_optim(T::CMPO, init::CMPSData, β::Real; maxiter::Integer=1000, tol::Real=1e-9, verbosity::Integer=2, ϵ::Real=1e-6)
 
     function _f(ϕ::CMPSData)
         return variance(T, ϕ, β)
