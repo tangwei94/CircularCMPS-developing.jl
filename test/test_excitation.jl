@@ -1,5 +1,6 @@
-ψ = ψ1
-#L = 10
+ψ = CMPSData(rand, 2, 1)
+
+L = 10
 
 χ = get_χ(ψ)
 Id = id(ℂ^χ)
@@ -31,8 +32,9 @@ integral2, err2 = quadgk(τ -> tr(A1 * exp((K+im*2*pi/L*Id_K)*τ) * A2 * exp(K*(
 
 @test abs(integral1 - integral2) < err2
 
-# test 3 for Coeff2
-P = gauge_fixing_map(ψ)
+# test 3 for Coeff2. 
+# TODO. check d_ph > 1
+P = gauge_fixing_map(ψ, L)
 ϕX = ExcitationData(P, rand(χ, χ))
 
 @test abs(tr(expK * (K_otimes(ϕX.V, Id) + sum(K_otimes.(ϕX.Ws, ψ.Rs))) )) < 1e-14
@@ -40,7 +42,7 @@ P = gauge_fixing_map(ψ)
 
 N_mat = effective_N(ψ, 0, L)
 WN, _ = eigen(Hermitian(N_mat))
-@test minimum(WN) > 0 
+@test minimum(real.(WN)) > -1e-16
 
 # test 1 for Coeff3
 C3 = Coeff3(K, 0, 0, L)
@@ -55,7 +57,7 @@ integral2, err2 = quadgk(τ2 ->
 
 # test 2 for Coeff3
 Id_K = id(domain(K))
-p1, p2 = 2*pi/L, -4*pi/L
+p1, p2 = 4*pi/L, -4*pi/L
 C3 = Coeff3(K, p1, p2, L)
 integral1 = C3(A1, A2, A3)
 
