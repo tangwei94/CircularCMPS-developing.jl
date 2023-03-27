@@ -117,10 +117,9 @@ for k in -3:3
 
         ovlpρ, ovlpj = Kac_Moody_gen(ψ, V1, k*2*pi/L, L, v_cmps, K_cmps, Ngs_cmps / L)
 
+        # phase adjustments 
         α = angle(ovlpρ)
-        if abs(k) == 2 && ix == 1 || abs(k) == 3 && ix == 2
-            # Here the phase adjustment is based on the prior knowledge from the BA solution,
-            # which is not necessary
+        if abs(k) == 2 && ix == 1 || abs(k) == 3 && ix == 2 || k == 0 && ix == 1
             α += pi 
         end
         Vs_cmps[4+k][:, ix] *= exp(im*α)
@@ -155,8 +154,8 @@ for k in -3:3
     end
 end
 
-@save "tmpdata/ovlps_cmps_c$(c)_mu$(μ)_L$(L).jld2" chiral_ovlps_gs_cmps antichiral_ovlps_gs_cmps chiral_ovlps_ψ1_cmps antichiral_ovlps_ψ1_cmps 
-@load "tmpdata/ovlps_cmps_c$(c)_mu$(μ)_L$(L).jld2" chiral_ovlps_gs_cmps antichiral_ovlps_gs_cmps chiral_ovlps_ψ1_cmps antichiral_ovlps_ψ1_cmps 
+@save "tmpdata/ovlps_cmps_c$(c)_mu$(μ)_L$(L).jld2" chiral_ovlps_gs_cmps antichiral_ovlps_gs_cmps chiral_ovlps_ψ1_cmps antichiral_ovlps_ψ1_cmps energies_cmps numbers_cmps momenta_cmps 
+@load "tmpdata/ovlps_cmps_c$(c)_mu$(μ)_L$(L).jld2" chiral_ovlps_gs_cmps antichiral_ovlps_gs_cmps chiral_ovlps_ψ1_cmps antichiral_ovlps_ψ1_cmps energies_cmps numbers_cmps momenta_cmps 
 # ============ the plot ============ 
 
 CM = maximum(norm.(vcat(chiral_ovlps_gs, antichiral_ovlps_gs)))
@@ -228,10 +227,10 @@ for (label, layout) in zip(["(a)", "(b)"], [gf[1, 1], gf[1, 2]])
     )
 end
 
-#Label(gf[1,1][1, 1, TopLeft()], L"|\psi_\mathrm{i}\rangle",
-#    padding = (0, -310, -470, 0))
-#Label(gf[1,2][1, 1, TopLeft()], L"|\psi_\mathrm{i}\rangle",
-#    padding = (0, -365, -370, 0))
+Label(gf[1,1][1, 1, TopLeft()], L"|\psi_\mathrm{i}\rangle",
+    padding = (0, -310, -600, 0))
+Label(gf[1,2][1, 1, TopLeft()], L"|\psi_\mathrm{i}\rangle",
+    padding = (0, -365, -460, 0))
 
 axislegend(ax1, position=:lb, framevisible=true, labelsize=14)
 axislegend(ax2, position=:lb, framevisible=true, labelsize=14)
@@ -265,13 +264,18 @@ scale_E_cmps.(energies_cmps)[msk_cmps][order_cmps]
 chiral_ovlps_gs[msk][order]
 chiral_ovlps_gs_cmps[msk_cmps][order_cmps]
 
-open("result.txt","w") do io
-   println(io, "momenta ba ", momenta[msk][order])
-   println(io, "momenta cmps ", momenta_cmps[msk_cmps][order_cmps])
-   println(io, "energies ba ", scale_E.(energies[msk][order]))
-   println(io, "energies cmps ", scale_E_cmps.(energies_cmps[msk_cmps][order_cmps]))
-   println(io, "N cmps ", real.(numbers_cmps[msk_cmps][order_cmps]))
-   println(io, "chiral ovlp ba ", real.(chiral_ovlps_gs[msk][order]))
-   println(io, "chiral ovlp cmps norm", norm.(chiral_ovlps_gs_cmps[msk_cmps][order_cmps]))
-   println(io, "chiral ovlp cmps angle", angle.(chiral_ovlps_gs_cmps[msk_cmps][order_cmps]))
+myround(x) = round(x, digits=4)
+
+open("scripts/lieb-liniger-spectra/fig-cmps-spect-a-result.txt","w") do io
+   println(io, "momenta ba ", myround.(momenta[msk][order] ./ (2*pi/L)))
+   println(io, "momenta cmps ", myround.(momenta_cmps[msk_cmps][order_cmps] ./ (2*pi/L)))
+   println(io, "N cmps ", myround.(real.(numbers_cmps[msk_cmps][order_cmps])))
+   println(io, "energies ba ", myround.(scale_E.(energies[msk][order])))
+   println(io, "energies cmps ", myround.(scale_E_cmps.(energies_cmps[msk_cmps][order_cmps])))
+   println(io, "chiral ovlp ba (a)", myround.(real.(chiral_ovlps_gs[msk][order])))
+   println(io, "chiral ovlp cmps (a)", myround.(real.(chiral_ovlps_gs_cmps[msk_cmps][order_cmps])))
+   println(io, "chiral ovlp ba (b)", myround.(real.(chiral_ovlps_ψ1[msk][order])))
+   println(io, "chiral ovlp cmps (b)", myround.(real.(chiral_ovlps_ψ1_cmps[msk_cmps][order_cmps])))
+   println(io, "antichiral ovlp ba (b)", myround.(real.(antichiral_ovlps_ψ1[msk][order])))
+   println(io, "antichiral ovlp cmps (b)", myround.(real.(antichiral_ovlps_ψ1_cmps[msk_cmps][order_cmps])))
 end
