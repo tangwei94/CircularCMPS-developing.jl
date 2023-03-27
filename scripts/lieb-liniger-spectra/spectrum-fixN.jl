@@ -242,7 +242,7 @@ axislegend(ax2, position=:lb, framevisible=true, labelsize=14)
 Colorbar(gl[1, 1], sc1_main, label=L"\text{form factor}", vertical = false, flipaxis = false) 
 
 @show fig
-Makie.save("scripts/lieb-liniber-spectra/fig-cmps-spect.pdf", fig)
+Makie.save("scripts/lieb-liniger-spectra/fig-cmps-spect.pdf", fig)
 
 
 # ============ export detailed data ============ 
