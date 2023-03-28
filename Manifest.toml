@@ -1475,7 +1475,7 @@ version = "0.10.0"
 
 [[TensorKitAD]]
 deps = ["ChainRules", "ChainRulesCore", "ChainRulesTestUtils", "FiniteDifferences", "KrylovKit", "LinearAlgebra", "MPSKit", "TensorKit", "TensorOperations", "TupleTools", "Zygote"]
-git-tree-sha1 = "ecfe029fb0fcbddf0d96c3e16632fa5a5c4b1d9b"
+git-tree-sha1 = "3a057eb2f0261d2b98a4a00ce92ab6b9c5f6c864"
 repo-rev = "main"
 repo-url = "https://github.com/quantumghent/TensorKitAD.jl.git"
 uuid = "eda3f616-0809-42bc-8d6d-52d8f639ba44"
