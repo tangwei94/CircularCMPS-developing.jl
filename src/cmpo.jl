@@ -217,6 +217,22 @@ function energy(T::CMPO, ψL::CMPSData, ψ::CMPSData, β::Real)
     return -real(tr(expK_leg3 * K_leg3) - tr(expK_leg2 * K_leg2))
 end
 
+function klein(ϕL::CMPSData, ϕ::CMPSData, L::Real)
+    Kmat = K_mat(ϕL, ϕ)
+    _, α = finite_env(Kmat, L)
+    ϕ = rescale(ϕ, -real(α), L)
+    ϕL = rescale(ϕL, -real(α), L)
+
+    # the Kmat for klein bottle entropy computation is different!
+    IdL, IdR = id(space(ϕL)), id(space(ϕ)) 
+    Kmat_klein = ϕL.Q ⊗ IdR + IdL ⊗ ϕ.Q + sum(ϕL.Rs .⊗ ϕ.Rs)
+    expK_klein = exp(Kmat_klein * (L/2))
+    @tensor gk = expK_klein[1 2; 2 1]
+    sk = 2*real(log(gk))
+    
+    return sk
+end
+
 # only implemented for plain tensors
 function direct_sum(A::MPSBondTensor, B::MPSBondTensor)
     χA, χB = dim(_firstspace(A)), dim(_firstspace(B))
