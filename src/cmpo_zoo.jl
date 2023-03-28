@@ -23,6 +23,13 @@ function xxz_af_cmpo(Δ::Real)
     return T, W
 end
 
+function xxz_fm_cmpo(Δ::Real)
+    sp, sm, σz, zero2 = pauli.sp, pauli.sm, pauli.σz, pauli.zero2
+    T = CMPO(zero2, [1/sqrt(2) * sm, 1/sqrt(2) * sp, -sqrt(Δ) * σz / 2], [1/sqrt(2) * sp, 1/sqrt(2) * sm, sqrt(Δ) * σz / 2], fill(zero2, 3, 3))
+    W = Float64[0 1 0 ; 1 0 0 ; 0 0 -1]
+    return T, W
+end
+
 function heisenberg_j1j2_cmpo(J1::Real, J2::Real)
     Id, sp, sm, σz, zero2 = pauli.Id, pauli.sp, pauli.sm, pauli.σz, pauli.zero2
 

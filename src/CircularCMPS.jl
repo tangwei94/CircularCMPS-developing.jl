@@ -34,7 +34,7 @@ export CircularCMPSRiemannian, minimize, leading_boundary_cmps
 export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum, W_mul, variance, free_energy, energy, klein
 
 # cmpo_zoo.jl
-export ising_cmpo, xxz_af_cmpo, heisenberg_j1j2_cmpo
+export ising_cmpo, xxz_af_cmpo, xxz_fm_cmpo, heisenberg_j1j2_cmpo
 
 # cMPS code for continuous Hamiltonians
 include("utils.jl");

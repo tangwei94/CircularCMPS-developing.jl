@@ -129,7 +129,7 @@ function ln_ovlp(ϕ::CMPSData, T::CMPO, ψ::CMPSData, L::Real)
     return finite_env(ϕ * (T * ψ), L)[2]
 end
 
-function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=250, tol::Real=1e-9, verbosity::Integer=1, init=nothing, ϵ::Real=1e-6)
+function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-9, verbosity::Integer=1, init=nothing, ϵ::Real=1e-6)
 
     if χ >= get_χ(ψ)
         @warn "no need to compress"
