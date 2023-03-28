@@ -53,6 +53,5 @@ for χ in χs
         push!(vars, var)
         push!(ψs, ψ)
     end
+    @save "J1J2/dimer_phase_blk2_temp$(temperature).jld2" fs Es vars ψs
 end
-
-@save "J1J2/dimer_phase_blk2_temp$(temperature).jld2" fs Es vars ψs
