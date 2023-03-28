@@ -1,7 +1,3 @@
-# TODO. no need to include L in most of cases.
-# consider redefine CircularCMPS -> cMPSdata, and remove the field :L
-# consider define abstract type: CMPS data, which contain different strucutres 
-
 abstract type AbstractCMPSData end
 
 mutable struct CMPSData <: AbstractCMPSData 
@@ -170,9 +166,13 @@ function expand(ψ::CMPSData, χ::Integer, L::Real; perturb::Float64=1e-3)
         Q.data[ix, ix] += 2*log(perturb)/L # suppress
     end
 
-    Rs = fill(copy(mask), d)
-    for (R, R0) in zip(Rs, ψ.Rs)
+    Rs = MPSBondTensor[]
+    for R0 in ψ.Rs
+        R = similar(R0, ℂ^χ ← ℂ^χ)
+        fill_data!(R, randn)
+        R = perturb * R
         R.data[1:χ0, 1:χ0] += R0.data
+        push!(Rs, R)
     end
 
     return CMPSData(Q, Rs) 
