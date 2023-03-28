@@ -34,6 +34,5 @@ for χ in [4, 8, 12, 16, 20, 24]
     push!(fs, f1)
     push!(ψs, ψ1)
     push!(ss, s1)
+    @save "xxz/heisenberg_beta$(β).jld2" ψs fs ss
 end
-
-@save "xxz/heisenberg_beta$(β).jld2" ψs fs ss
