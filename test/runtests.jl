@@ -1,7 +1,7 @@
-using CircularCMPS
+using TensorKit, LinearAlgebra, KrylovKit
 using QuadGK
 using Test
+using Revise
+using CircularCMPS
 
-@testset "CircularCMPS.jl" begin
-    # Write your tests here.
-end
+include("test_cmps.jl");
