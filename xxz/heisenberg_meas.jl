@@ -9,12 +9,14 @@ T, W = xxz_fm_cmpo(1.0)
 
 β = parse(Float64, ARGS[1])
 
-fs = Float64[]
 ψs = CMPSData[]
+fs = Float64[]
 ss = Float64[]
 
 ψ1 = ψ0
 for χ in [4, 8, 12, 16, 20, 24]
+    global ψs, fs, ss
+    global ψ1
     for ix in 1:5 
         Tψ1 = left_canonical(T*ψ1)[2]
         ψ1 = left_canonical(ψ1)[2]
