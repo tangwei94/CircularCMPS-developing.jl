@@ -81,7 +81,7 @@ end
 function ExcitationData(P::AbstractTensorMap, data::AbstractMatrix)
     χ, d = dims(codomain(P))
     d -= 1
-    Pdata = reshape(P.data, χ, d+1, χ)
+    Pdata = reshape(P.data, χ, d+1, χ*d)
 
     V = TensorMap(Pdata[:, 1, :] * data, ℂ^χ, ℂ^χ)
     Ws = [TensorMap(Pdata[:, ix+1, :] * data, ℂ^χ, ℂ^χ) for ix in 1:d] 
@@ -99,7 +99,9 @@ function gauge_fixing_map(ψ::CMPSData, L::Real)
     A0 = TensorMap(zeros, ComplexF64, (ℂ^χ)', (ℂ^χ)'*ℂ^(d+1))
     A0data = zeros(ComplexF64, χ, χ, d+1)
     A0data[:, :, 1] = Matrix{ComplexF64}(I, χ, χ)
-    A0data[:, :, 2] = conj(ψ.Rs[1].data)
+    for ix in 1:d
+        A0data[:, :, 1+ix] = conj(ψ.Rs[ix].data)
+    end
 
     A0data = reshape(A0data, χ, χ*(d+1))
     A0 = TensorMap(A0data, (ℂ^χ)', (ℂ^χ)'*ℂ^(d+1))
@@ -119,7 +121,7 @@ function effective_N(ψ::CMPSData, p::Real, L::Real)
 
     X = zeros(χ, χ)
     # thread-safe array building https://discourse.julialang.org/t/thread-safe-array-building/3275/2
-    # TODO. doesn't work for Ys, why?
+    # doesn't work for Ys
     #Ys = fill(zeros(χ, χ), Threads.nthreads())
     Id = id(ℂ^χ)
     N_mat = zeros(ComplexF64, χ^2, χ^2)
@@ -159,7 +161,10 @@ end
 function effective_H(ψ::CMPSData, p::Real, L::Real; c=1.0, μ=2.0, k0=1)
     P = gauge_fixing_map(ψ, L)
     K = K_mat(ψ, ψ)
-    expK, _ = finite_env(K, L)
+    expK, α = finite_env(K, L)
+    if norm(α) > 1e-9
+        @error "ψ should be normalized"
+    end
 
     χ = get_χ(ψ)
 
@@ -232,7 +237,10 @@ function Kac_Moody_gen(ψ::CMPSData, V::Vector, q::Real, L::Real, v::Real, K::Re
     χ = get_χ(ψ)
     Id = id(ℂ^χ)
     Kmat = K_mat(ψ, ψ)
-    expK, _ = finite_env(Kmat, L)
+    expK, α = finite_env(Kmat, L)
+    if norm(α) > 1e-9
+        @error "ψ should be normalized"
+    end
     C2 = Coeff2(Kmat, -q, L)
 
     commQR = Ref(ψ.Q) .* ψ.Rs .- ψ.Rs .* Ref(ψ.Q)
@@ -263,7 +271,10 @@ function Kac_Moody_gen(ψ::CMPSData, VX::Vector, VY::Vector, pX::Real, pY::Real,
     χ = get_χ(ψ)
     Id = id(ℂ^χ)
     Kmat = K_mat(ψ, ψ)
-    expK, _ = finite_env(Kmat, L)
+    expK, α = finite_env(Kmat, L)
+    if norm(α) > 1e-9
+        @error "ψ should be normalized"
+    end
 
     C2a = Coeff2(Kmat, pY, L)
     C2z = Coeff2(Kmat, pY - pX, L)
@@ -334,17 +345,3 @@ function Kac_Moody_gen(ψ::CMPSData, VX::Vector, VY::Vector, pX::Real, pY::Real,
     return L*ovlpρ / sqrt(K), -im*L*ovlpj / v / sqrt(K)  
 
 end
-
-## TODO. ψ has to be normalized. Why???
-#_, α = finite_env(K_mat(ψ2, ψ2), L)
-#ψ2 = rescale(ψ2, -real(α), L)
-#
-#N1 = effective_N(ψ2, 0, L)
-#H1 = effective_H(ψ2, 0, L; c=1.0, μ=2.0)
-#
-#eigen(Hermitian(N1))
-
-# save data. 
-# solve general eigenvalue problem
-
-
