@@ -5,7 +5,7 @@ using CairoMakie
 using JLD2 
 
 J1, J2 = 1, 0.5
-T, Wmat = heisenberg_j1j2_cmpo(J1, J2)
+TJ1J2, Wmat = heisenberg_j1j2_cmpo(J1, J2)
 Tblk = TJ1J2 * TJ1J2
 
 β = 32
