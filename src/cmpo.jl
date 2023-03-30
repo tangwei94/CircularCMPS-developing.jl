@@ -2,8 +2,8 @@ abstract type AbstractCMPO end
 
 struct CMPO <: AbstractCMPO 
     Q::MPSBondTensor
-    Rs::Vector{<:MPSBondTensor}
     Ls::Vector{<:MPSBondTensor}
+    Rs::Vector{<:MPSBondTensor}
     Ps::Matrix{<:MPSBondTensor}
 end
 
