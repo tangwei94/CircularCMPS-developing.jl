@@ -28,8 +28,8 @@ for β in βs
         for ix in steps 
             Tψ = left_canonical(T*ψ)[2]
             ψ = left_canonical(ψ)[2]
-            Tψ = direct_sum(Tψ, ψ, 0.5, β)
-            ψ = compress(Tψ, χ, β; tol=1e-6, init=ψ)
+            Tψ = direct_sum(Tψ, ψ)
+            ψ = compress(Tψ, χ, β; init=ψ, maxiter=100)
             ψL = W_mul(Wmat, ψ)
 
             f = free_energy(T, ψL, ψ, β)
@@ -41,7 +41,7 @@ for β in βs
         push!(Es, E)
         push!(vars, var)
         push!(ψs, ψ)
-    end
 
-    @save "J1J2/dimer_phase_beta$(β).jld2" fs Es vars ψs
+        @save "J1J2/dimer_phase_beta$(β).jld2" fs Es vars ψs
+    end
 end

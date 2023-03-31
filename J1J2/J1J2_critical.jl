@@ -7,14 +7,14 @@ using JLD2
 J1, J2 = 1, 0.241167
 T, Wmat = heisenberg_j1j2_cmpo(J1, J2)
 
-χs = [3, 6, 9, 12, 16]
+χs = [3, 6, 9, 12]
 
 ψ0 = CMPSData(T.Q, T.Ls)
 
 α = 2^(1/4)
 βs = 1.28 * α .^ (0:23)
 
-steps = 1:200
+steps = 1:100
 
 # power method, shift spectrum
 fs, Es, vars = Float64[], Float64[], Float64[]
