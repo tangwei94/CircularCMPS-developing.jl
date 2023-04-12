@@ -17,12 +17,12 @@ T, Wmat = heisenberg_j1j2_cmpo(J1, J2)
 steps = 1:200
 
 # power method, shift spectrum
-fs, Es, vars = Float64[], Float64[], Float64[]
-ψs = CMPSData[]
-ψ = ψ0
 
 for β in βs
-    global ψ
+    global ψ0
+    ψ = ψ0
+    fs, Es, vars = Float64[], Float64[], Float64[]
+    ψs = CMPSData[]
     for χ in χs
         f, E, var = fill(-999, 3)
         for ix in steps 
