@@ -240,7 +240,7 @@ function finite_env(K::TensorMap{ComplexSpace}, L::Real)
 end
 
 """
-    rescale(ψ::CMPSData, lnα::Real)
+    rescale(ψ::CMPSData, lnα::Real, L::Real)
 
     rescale the cMPS: ψ -> exp(lnα) * ψ
 """
