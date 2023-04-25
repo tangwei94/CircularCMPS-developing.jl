@@ -3,7 +3,7 @@ module CircularCMPS
 __precompile__(true)
 
 using LinearAlgebra
-using TensorKit, TensorOperations, KrylovKit, TensorKitAD
+using TensorKit, TensorOperations, KrylovKit, TensorKitAD, TensorKitManifolds
 using ChainRules, ChainRulesCore, Zygote
 using OptimKit
 using LoopVectorization 
@@ -36,6 +36,9 @@ export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum, W_mul, variance, free_
 # cmpo_zoo.jl
 export ising_cmpo, xxz_af_cmpo, xxz_fm_cmpo, heisenberg_j1j2_cmpo
 
+# power_iteration.jl 
+export power_iteration
+
 # cMPS code for continuous Hamiltonians
 include("utils.jl");
 include("cmps.jl");
@@ -49,5 +52,6 @@ include("optim_alg.jl");
 include("cmpo.jl");
 include("cmpoAD.jl");
 include("cmpo_zoo.jl");
+include("power_iteration.jl")
 
 end

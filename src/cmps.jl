@@ -42,6 +42,8 @@ end
 @inline get_χ(ψ::CMPSData) = dim(_firstspace(ψ.Q))
 @inline get_d(ψ::CMPSData) = length(ψ.Rs)
 TensorKit.space(ψ::CMPSData) = _firstspace(ψ.Q)
+TensorKit.norm(ϕ::CMPSData) =  sqrt(norm(ϕ.Q)^2 + norm(ϕ.Rs)^2)
+
 #function Base.iterate(ψ::CMPSData, i=1)
     #data = [ψ.Q, ψ.Rs]
     #(i > length(data)) ? nothing : (data[i],i+1)
