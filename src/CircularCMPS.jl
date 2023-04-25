@@ -31,7 +31,7 @@ export θ2, θ3, AbstractCoeffs, Coeff2, Coeff3, ExcitationData, gauge_fixing_ma
 export CircularCMPSRiemannian, minimize, leading_boundary_cmps
 
 # cmpo.jl 
-export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum, W_mul, variance, free_energy, energy, klein
+export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum, W_mul, variance, free_energy, energy, klein, inner
 
 # cmpo_zoo.jl
 export ising_cmpo, xxz_af_cmpo, xxz_fm_cmpo, heisenberg_j1j2_cmpo

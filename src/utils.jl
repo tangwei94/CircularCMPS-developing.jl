@@ -45,3 +45,43 @@ function herm_reg_inv(A::AbstractTensorMap, δ::Real)
     return Ainv
 
 end
+
+function ChainRulesCore.rrule(::typeof(TensorKit.exp), K::TensorMap)
+    W, UR = eig(K)
+    UL = inv(UR)
+    Ws = []
+
+    if W.data isa Matrix 
+        Ws = diag(W.data)
+    elseif W.data isa TensorKit.SortedVectorDict
+        Ws = vcat([diag(values) for (_, values) in W.data]...)
+    end
+
+    expK = UR * exp(W) * UL
+
+    function exp_pushback(f̄wd)
+        ēxpK = f̄wd 
+       
+        K̄ = zero(K)
+
+        if ēxpK != ZeroTangent()
+            if W.data isa TensorKit.SortedVectorDict
+                # TODO. symmetric tensor
+                error("symmetric tensor. not implemented")
+            end
+            function coeff(a::Number, b::Number) 
+                if a ≈ b
+                    return exp(a)
+                else 
+                    return (exp(a) - exp(b)) / (a - b)
+                end
+            end
+            M = UR' * ēxpK * UL'
+            M1 = similar(M)
+            copyto!(M1.data, M.data .* coeff.(Ws', conj.(Ws)))
+            K̄ += UL' * M1 * UR'# - tr(ēxpK * expK') * expK'
+        end
+        return NoTangent(), K̄
+    end 
+    return expK, exp_pushback
+end

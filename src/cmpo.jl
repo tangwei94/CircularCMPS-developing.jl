@@ -8,6 +8,7 @@ struct CMPO <: AbstractCMPO
 end
 
 @inline get_χ(T::CMPO) = dim(_firstspace(T.Q))
+TensorKit.space(T::CMPO) = _firstspace(T.Q)
 
 function Base.:*(M::Matrix{<:AbstractTensorMap}, v::Vector{<:AbstractTensorMap})
     Mv = [sum(M[ix, :] .⊗ v) for ix in eachindex(v)]
@@ -129,7 +130,7 @@ function ln_ovlp(ϕ::CMPSData, T::CMPO, ψ::CMPSData, L::Real)
     return finite_env(ϕ * (T * ψ), L)[2]
 end
 
-function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-9, verbosity::Integer=1, init=nothing, ϵ::Real=1e-6)
+function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-9, verbosity::Integer=1, init=nothing, ϵ::Real=0, force_init=false)
 
     if χ >= get_χ(ψ)
         @warn "no need to compress"
@@ -154,8 +155,20 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     Q1 = U1inv * ψ.Q * U1
     Rs1 = Ref(U1inv) .* ψ.Rs .* Ref(U1)
     ψ1 = CMPSData(Q1, Rs1)
-    if init !== nothing && get_χ(init) == χ && _f(init) < _f(ψ1)
-        ψ1 = init
+    if init === nothing || get_χ(init) > χ 
+        (verbosity >= 1) && println("no init available")
+    else
+        if get_χ(init) < χ
+            init = expand(init, χ, L; perturb=1e-6)
+        end
+        f1 = _f(ψ1)
+        finit = _f(init)
+        if finit < f1 || force_init
+            (verbosity >= 1) && println("input init is chosen. f1: $(f1), finit: $(finit) ")
+            ψ1 = init
+        else 
+            (verbosity >= 1) && println("input init is not chosen. f1: $(f1), finit: $(finit) ")
+        end
     end
     ψ1 = ψ1 + ϵ * CMPSData(rand, χ, get_d(ψ1)) #perturb
 
@@ -256,4 +269,25 @@ end
 
 function W_mul(W::Matrix{<:Number}, ψ::CMPSData)
     return CMPSData(ψ.Q, W * ψ.Rs)
+end
+
+function Base.:*(W::Matrix{<:Number}, ψ::CMPSData)
+    return W_mul(W, ψ)
+end
+function Base.:*(W::Matrix{<:Number}, T::CMPO)
+    Ls = W * T.Ls 
+    Ps = W * T.Ps 
+    return CMPO(T.Q, Ls, T.Rs, Ps) 
+end
+function Base.:*(T::CMPO, W::Matrix{<:Number})
+    Rs = T.Rs * W 
+    Ps = T.Ps * W 
+    return CMPO(T.Q, T.Ls, Rs, Ps)
+end
+
+function inner(T1::CMPO, T2::CMPO, L::Real)
+    Id_1, Id_2 = id(space(T1)), id(space(T2))
+
+    Kmat = K_otimes(T1.Q, Id_2) + K_otimes(Id_1, T2.Q) + sum(K_otimes.(T1.Rs, T2.Rs)) + sum(K_otimes.(T1.Ls, T2.Ls))
+    return finite_env(Kmat, L)[2] 
 end

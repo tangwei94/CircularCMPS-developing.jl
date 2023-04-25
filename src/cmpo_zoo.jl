@@ -53,5 +53,17 @@ function heisenberg_j1j2_cmpo(J1::Real, J2::Real)
     W[5:6, 5:6] = W0
 
     T = CMPO(zero2, Ls, Rs, Ps)
-    return T, W
+    #return T, W
+    Λ, U = eigen(W)
+    UL = U * diagm(sqrt.(abs.(Λ)))
+    UR = diagm(sqrt.(abs.(Λ))) * U'
+    Λ0 = diagm(sign.(Λ))
+    W - UL * Λ0 * UR |> norm
+
+    Ps = UR * T.Ps * inv(W) * UL * Λ0
+    Rs = T.Rs * inv(W) * UL * Λ0
+    Ls = UR * T.Ls
+
+    T1 = CMPO(T.Q, Ls, Rs, Ps)
+    return T1, Λ0
 end

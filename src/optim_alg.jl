@@ -46,7 +46,7 @@ function minimize(_f, init::CMPSData, alg::CircularCMPSRiemannian)
 
         δ = inner(ϕ, dϕ, dϕ)
 
-        P = herm_reg_inv(vr, max(1e-12, 1e-3*δ)) 
+        P = herm_reg_inv(vr, max(1e-12, 1e-3*sqrt(δ))) 
 
         Q = dϕ.Q  
         Rs = dϕ.Rs .* Ref(P)
