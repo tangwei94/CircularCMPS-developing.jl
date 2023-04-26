@@ -1,4 +1,4 @@
-function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData; maxiter::Int=200, DIIS_D::Int=6, do_shifting::Bool=true)
+function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData; maxiter::Int=200, DIIS_D::Int=5, spect_shifting::Real=1)
     printstyled("\n[ power_iteration: doing power method for $(space(ψ)) \n"; bold=true)
     χ = dim(space(ψ))
     tmpψs = CMPSData[]
@@ -6,9 +6,9 @@ function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData
     f, E, var = Inf, Inf, Inf
     for ix in 1:maxiter
         Tψ = left_canonical(T*ψ)[2]
-        if do_shifting
+        if spect_shifting > 0
             ψ = left_canonical(ψ)[2]
-            Tψ = direct_sum(Tψ, ψ)
+            Tψ = direct_sum(Tψ, ψ; α=log(spect_shifting)/β/2)
         end
         ψ1 = compress(Tψ, χ, β; init=ψ, maxiter=100)
         fidel = real(2*ln_ovlp(ψ, ψ1, β) - ln_ovlp(ψ, ψ, β) - ln_ovlp(ψ1, ψ1, β))
@@ -26,7 +26,7 @@ function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData
             tmpψs = CMPSData[]
             Δψs = CMPSData[]
         end
-        if length(Δψs) == 2 && norm(Δψs[2]) > norm(Δψs[1]) # handle the situation where Δ oscillates
+        if length(Δψs) >= 2 && norm(Δψs[end]) > norm(Δψs[end-1]) # handle the situation where Δ oscillates
             printstyled("[ DIIS: remove abnormal error estimates \n"; color=:red, bold=true)
             tmpψs = CMPSData[]
             Δψs = CMPSData[]
@@ -78,7 +78,7 @@ function gauge_fixing(ϕ::CMPSData, β::Real)
     ϕ1 = CMPSData(inv(U) * ϕ.Q * U - α /2 * id(ℂ^χ), Ref(inv(U)) .* ϕ.Rs .* Ref(U))
     return ϕ1
 end
-function gauge_fixing(ϕ1::CMPSData, ϕ2::CMPSData, β::Real; verbosity::Int=0, gradtol::Real=1e-12, maxiter::Int=100)
+function gauge_fixing(ϕ1::CMPSData, ϕ2::CMPSData, β::Real; verbosity::Int=0, gradtol::Real=1e-10, maxiter::Int=100)
     χ = dim(space(ϕ1))
 
     ϕ1 = gauge_fixing(ϕ1, β)

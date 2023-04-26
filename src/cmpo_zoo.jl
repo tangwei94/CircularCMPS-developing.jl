@@ -22,16 +22,16 @@ function ising_cmpo(Γ::Real)
     return T, W
 end
 
-function xxz_af_cmpo(Δ::Real)
+function xxz_af_cmpo(Δ::Real; hz::Real=0.0)
     sp, sm, σz, zero2 = pauli.sp, pauli.sm, pauli.σz, pauli.zero2
-    T = CMPO(zero2, [-1/sqrt(2) * sm, -1/sqrt(2) * sp, -sqrt(Δ) * σz / 2], [1/sqrt(2) * sp, 1/sqrt(2) * sm, sqrt(Δ) * σz / 2], fill(zero2, 3, 3))
+    T = CMPO(hz * σz / 2, [-1/sqrt(2) * sm, -1/sqrt(2) * sp, -sqrt(Δ) * σz / 2], [1/sqrt(2) * sp, 1/sqrt(2) * sm, sqrt(Δ) * σz / 2], fill(zero2, 3, 3))
     W = Float64[0 -1 0 ; -1 0 0 ; 0 0 -1]
     return T, W
 end
 
-function xxz_fm_cmpo(Δ::Real)
+function xxz_fm_cmpo(Δ::Real; hz::Real=0.0)
     sp, sm, σz, zero2 = pauli.sp, pauli.sm, pauli.σz, pauli.zero2
-    T = CMPO(zero2, [1/sqrt(2) * sm, 1/sqrt(2) * sp, -sqrt(Δ) * σz / 2], [1/sqrt(2) * sp, 1/sqrt(2) * sm, sqrt(Δ) * σz / 2], fill(zero2, 3, 3))
+    T = CMPO(hz * σz / 2, [1/sqrt(2) * sm, 1/sqrt(2) * sp, -sqrt(Δ) * σz / 2], [1/sqrt(2) * sp, 1/sqrt(2) * sm, sqrt(Δ) * σz / 2], fill(zero2, 3, 3))
     W = Float64[0 1 0 ; 1 0 0 ; 0 0 -1]
     return T, W
 end
