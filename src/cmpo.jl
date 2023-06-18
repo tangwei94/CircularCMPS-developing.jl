@@ -159,12 +159,12 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
         (verbosity >= 1) && println("no init available")
     else
         if get_χ(init) < χ
-            init = expand(init, χ, L; perturb=1e-6)
+            init = expand(init, χ, L; perturb=tol)
         end
         f1 = _f(ψ1)
         finit = _f(init)
         if finit < f1 || force_init
-            (verbosity >= 1) && println("input init is chosen. f1: $(f1), finit: $(finit) ")
+            (verbosity >= 2) && println("input init is chosen. f1: $(f1), finit: $(finit) ")
             ψ1 = init
         else 
             (verbosity >= 1) && println("input init is not chosen. f1: $(f1), finit: $(finit) ")

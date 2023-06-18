@@ -6,79 +6,20 @@ using CircularCMPS
 
 J1, J2 = 1, 0.5
 T, Wmat = heisenberg_j1j2_cmpo(J1, J2)
-T2 = T*T
-χs = [3, 6, 9]
 
 α = 2^(1/4)
-βs = 1.28 * α .^ (0:23)
+βs = 0.64 * α .^ (0:27)
 
 free_energies, energies, variances, entropies = Float64[], Float64[], Float64[], Float64[]
-free_energies_chi6, energies_chi6, variances_chi6, entropies_chi6 = Float64[], Float64[], Float64[], Float64[]
-free_energies_chi3, energies_chi3, variances_chi3, entropies_chi3 = Float64[], Float64[], Float64[], Float64[]
 for β in βs 
-    @load "J1J2/dimer_phase_beta$(β).jld2" fs Es vars
-    S = (Es[end] - fs[end]) * β
+    @load "J1J2/cooling/dimer_phase_beta$(β).jld2" f E var
+    S = (E - f) * β
 
-    push!(free_energies, fs[end])
-    push!(energies, Es[end])
-    push!(variances, vars[end])
+    push!(free_energies, f)
+    push!(energies, E)
+    push!(variances, var)
     push!(entropies, S)
 
-    S = (Es[end-1] - fs[end-1]) * β
-
-    push!(free_energies_chi6, fs[end-1])
-    push!(energies_chi6, Es[end-1])
-    push!(variances_chi6, vars[end-1])
-    push!(entropies_chi6, S)
-
-    S = (Es[end-2] - fs[end-2]) * β
-
-    push!(free_energies_chi3, fs[end-2])
-    push!(energies_chi3, Es[end-2])
-    push!(variances_chi3, vars[end-2])
-    push!(entropies_chi3, S)
-end
-
-free_energies_blk, energies_blk, variances_blk, entropies_blk = Float64[], Float64[], Float64[], Float64[]
-free_energies_blk_chi6, energies_blk_chi6, variances_blk_chi6, entropies_blk_chi6 = Float64[], Float64[], Float64[], Float64[]
-free_energies_blk_chi3, energies_blk_chi3, variances_blk_chi3, entropies_blk_chi3 = Float64[], Float64[], Float64[], Float64[]
-for β in βs 
-    @load "J1J2/dimer_phase_blk2_beta$(β).jld2" fs Es vars
-    S = (Es[end] - fs[end]) * β
-
-    push!(free_energies_blk, fs[end])
-    push!(energies_blk, Es[end])
-    push!(variances_blk, vars[end])
-    push!(entropies_blk, S)
-
-    S = (Es[end-1] - fs[end-1]) * β
-
-    push!(free_energies_blk_chi6, fs[end-1])
-    push!(energies_blk_chi6, Es[end-1])
-    push!(variances_blk_chi6, vars[end-1])
-    push!(entropies_blk_chi6, S)
-
-    S = (Es[end-2] - fs[end-2]) * β
-
-    push!(free_energies_blk_chi3, fs[end-2])
-    push!(energies_blk_chi3, Es[end-2])
-    push!(variances_blk_chi3, vars[end-2])
-    push!(entropies_blk_chi3, S)
-end
-
-β0 = 1.28 * α .^ 23
-@load "J1J2/dimer_phase_beta$(β0).jld2" ψs
-ϕ = ψs[end-2]
-ϕL = W_mul(Wmat, ϕ)
-vars_lowT = Float64[] 
-free_energies_lowT = Float64[] 
-entropies_lowT = Float64[] 
-for β in βs[1:end]
-    push!(vars_lowT, variance(T, ϕ, β))
-    f = free_energy(T, ϕL, ϕ, β)
-    E = energy(T, ϕL, ϕ, β)
-    push!(free_energies_lowT, f)
-    push!(entropies_lowT, -(f-E)*β)
 end
 
 dtrg_data = readdlm("J1J2/xtrg_pbc_J1_1.000000_J2_0.500000_L_300_bondD_100.txt", '\t', Float64, '\n'; skipstart=33)
@@ -89,35 +30,31 @@ ax1 = Axis(fig[1, 1],
         xlabel = L"T",
         ylabel = L"F", 
         )
-lines!(ax1, 1 ./ dtrg_data[:, 1], dtrg_data[:, 2], color=:grey, label=L"\text{XTRG}")
-scatter!(ax1, 1 ./ βs, free_energies, label=L"\text{cMPO, shift spect }")
-scatter!(ax1, 1 ./ βs, free_energies_blk, marker='X', color=:red, label=L"\text{cMPO, blk}")
+lines!(ax1, 1 ./ dtrg_data[:, 1][end-15:end], dtrg_data[:, 2][end-15:end], color=:grey, label=L"\text{XTRG}")
+scatter!(ax1, 1 ./ βs[end-15:end], free_energies[end-15:end], label=L"\text{cMPO}")
 #lines!(ax1, 1 ./ βs[1:end], fill(-3/8, length(βs)), color=:red, linestyle=:dash, label=L"\text{gs}")
 #lines!(ax1, 1 ./ βs[1:end][end-10:end], free_energies_lowT[end-10:end], linestyle=:dash, label=L"\text{low T tensor}")
 #scatter!(ax1, [0], [-3/8], marker=:star5, markersize=15, color=:red, label=L"\text{exact, gs}")
 axislegend(ax1, position=:lb, framevisible=false)
 @show fig
 
+#ax2 = Axis(fig[1, 2], 
+#        xlabel = L"T",
+#        ylabel = L"F", 
+#        )
+#lines!(ax2, 1 ./ dtrg_data[:, 1][end-10:end], dtrg_data[:, 2][end-10:end], color=:grey, label=L"\text{XTRG}")
+#scatter!(ax2, 1 ./ βs[end-10:end], free_energies[end-10:end], label=L"\text{cMPO, shift spect }")
+#axislegend(ax2, position=:lb, framevisible=false)
+#@show fig
+
 ax2 = Axis(fig[1, 2], 
         xlabel = L"T",
-        ylabel = L"F", 
+        ylabel = L"S", 
         )
-lines!(ax2, 1 ./ dtrg_data[:, 1][end-10:end], dtrg_data[:, 2][end-10:end], color=:grey, label=L"\text{XTRG}")
-scatter!(ax2, 1 ./ βs[end-10:end], free_energies[end-10:end], label=L"\text{cMPO, shift spect }")
-scatter!(ax2, 1 ./ βs[end-10:end], free_energies_blk[end-10:end], marker='X', color=:red, label=L"\text{cMPO, blk}")
-axislegend(ax2, position=:lb, framevisible=false)
+lines!(ax2, 1 ./ dtrg_data[:, 1][end-15:end], dtrg_data[:, 4][end-15:end], color=:grey, label=L"\text{XTRG}")
+scatter!(ax2, 1 ./ βs[1:end][end-15:end], entropies[end-15:end], label=L"\text{cMPO}")
+axislegend(ax2, position=:rb, framevisible=false)
 @show fig
-
-#ax2 = Axis(fig[2, 1], 
-#        xlabel = L"T",
-#        ylabel = L"S", 
-#        )
-#lines!(ax2, 1 ./ dtrg_data[:, 1], dtrg_data[:, 4], color=:grey, label=L"\text{XTRG}")
-#scatter!(ax2, 1 ./ βs[1:end], entropies, label=L"\text{cMPO, shift spect}")
-#scatter!(ax2, 1 ./ βs[1:18], entropies_blk, marker='X', color=:red, label=L"\text{cMPO, blk}")
-#lines!(ax2, 1 ./ βs[1:end], entropies_lowT, linestyle=:dash, label=L"\text{low T tensor}")
-#axislegend(ax2, position=:rb, framevisible=false)
-#@show fig
 #
 save("J1J2/J1J2_dimer_phase_result.pdf", fig)
 

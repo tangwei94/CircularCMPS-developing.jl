@@ -46,6 +46,7 @@ include("cmpsAD.jl");
 include("operators.jl");
 include("ground_state.jl")
 include("excited_state.jl");
+include("entanglement.jl")
 
 # cMPO code
 include("optim_alg.jl");
@@ -53,5 +54,6 @@ include("cmpo.jl");
 include("cmpoAD.jl");
 include("cmpo_zoo.jl");
 include("power_iteration.jl")
+include("power_iteration_1.jl")
 
 end
