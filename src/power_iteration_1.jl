@@ -1,15 +1,30 @@
-function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData, tol::Real; maxiter::Int=200, spect_shifting::Real=1, maxχ::Int=40)
-    printstyled("\n[ power_iteration: doing power method with tol=$(tol) \n"; bold=true)
+@with_kw struct PowerMethod 
+    maxiter_power::Int = 200
+    spect_shifting::Real = 1 
+    maxχ::Int = 40
+    tol_fidel::Real = 1e-6
+    tol_ES::Real = 1e-6
+    maxiter_compress::Int = 100
+end
+
+function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData, alg::PowerMethod)
+    printstyled("\n[ power_iteration: doing power method with 
+        maxiter_power = $(alg.maxiter_power)          
+        spect_shifting = $(alg.spect_shifting)          
+        maxχ = $(alg.maxχ)          
+        tol_fidel=$(alg.tol_fidel) 
+        tol_ES=$(alg.tol_ES) 
+        maxiter_compress=$(alg.maxiter_compress) \n"; bold=true, color=:red)
     f, E, var = Inf, Inf, Inf
-    for ix in 1:maxiter
+    for ix in 1:alg.maxiter_power
         Tψ = left_canonical(T*ψ)[2]
-        if spect_shifting > 0
+        if alg.spect_shifting > 0
             ψ = left_canonical(ψ)[2]
-            Tψ = direct_sum(Tψ, ψ; α=log(spect_shifting)/β/2)
+            Tψ = direct_sum(Tψ, ψ; α=log(alg.spect_shifting)/β/2)
         end
-        χ, err = suggest_χ(Tψ, β, tol; maxχ=maxχ, minχ=get_χ(ψ))
+        χ, err = suggest_χ(Tψ, β, alg.tol_ES; maxχ=alg.maxχ, minχ=get_χ(ψ))
         printstyled("[ power_iteration: next χ: $(χ), possible error: $(err) \n"; bold=true)
-        ψ1 = compress(Tψ, χ, β; init=ψ, maxiter=100)
+        ψ1 = compress(Tψ, χ, β; init=ψ, maxiter=alg.maxiter_compress)
         fidel = real(2*ln_ovlp(ψ, ψ1, β) - ln_ovlp(ψ, ψ, β) - ln_ovlp(ψ1, ψ1, β))
 
         ψ = ψ1
@@ -19,7 +34,7 @@ function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData
         var = variance(T, ψ, β)
         printstyled("[ power_iteration: ix, f, E, var, fidel $(ix) $(f) $(E) $(var) $(fidel) \n"; color=:red)
 
-        abs(fidel) < tol && break
+        ix > 2 && abs(fidel) < alg.tol_fidel && break
     end
     return ψ, f, E, var
 end
