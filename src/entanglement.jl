@@ -20,7 +20,7 @@ function suggest_χ(ψ::CMPSData, β::Real; tol::Real=1e-9, maxχ::Int=32, minχ
 
     ΛA, _ = eigen(ρA)
     SA = reverse(norm.(diag(ΛA.data)))
-    χ1 = min(ceil(Int, sqrt(sum(SA .> tol))), maxχ)
+    χ1 = min(floor(Int, sqrt(sum(SA .> tol))), maxχ)
     χ1 = max(χ1, minχ)
     err = 0 
     if χ1^2 < length(SA)

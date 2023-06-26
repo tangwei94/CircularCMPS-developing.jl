@@ -3,8 +3,8 @@
     spect_shifting::Real = 1 
     maxχ::Int = 40
     tol_fidel::Real = 1e-8
-    tol_ES::Real = 1e-6
-    maxiter_compress::Int = 100
+    tol_ES::Real = 1e-7
+    maxiter_compress::Int = 250
     verbosity::Int = 1
 end
 
