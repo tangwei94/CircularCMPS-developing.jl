@@ -12,21 +12,23 @@ T, Wmat = heisenberg_j1j2_cmpo(J1, J2)
 βs = βs[end-10:end]
 
 function read_data(βs, prefix, ix)
-    free_energies, energies, variances, entropies = Float64[], Float64[], Float64[], Float64[]
+    free_energies, energies, variances, entropies, EEs = Float64[], Float64[], Float64[], Float64[], Float64[]
     for β in βs
-        @load "J1J2/old_results1/$(prefix)$(β).jld2" fs Es vars
+        @load "J1J2/gauged-results/$(prefix)$(β).jld2" fs Es vars ψs
         S = (Es[end] - fs[end]) * β
+        SE = entanglement_entropy(ψs[end], β)
 
         push!(free_energies, fs[end-ix])
         push!(energies, Es[end-ix])
         push!(variances, vars[end-ix])
         push!(entropies, S)
+        push!(EEs, SE)
     end
-    return free_energies, energies, variances, entropies
+    return free_energies, energies, variances, entropies, EEs
 end
 
-free_energies, enegies, variances, entropies = read_data(βs, "dimer_phase_beta", 2);
-free_energies2, enegies2, variances2, entropies2 = read_data(βs, "dimer_phase_beta", 0);
+free_energies, enegies, variances, entropies, EEs = read_data(βs, "dimer_phase_beta", 2);
+free_energies2, enegies2, variances2, entropies2, EEs2 = read_data(βs, "dimer_phase_beta", 0);
 
 dtrg_data = readdlm("J1J2/xtrg_pbc_J1_1.000000_J2_0.500000_L_300_bondD_100.txt", '\t', Float64, '\n'; skipstart=33)
 
@@ -63,6 +65,15 @@ ax3 = Axis(fig[3, 1],
 scatter!(ax3, 1 ./ βs[1:end], variances, label=L"\text{cMPO, }χ=3")
 scatter!(ax3, 1 ./ βs[1:end], variances2, label=L"\text{cMPO, }χ=9")
 axislegend(ax3, position=:rt, framevisible=false)
+@show fig
+
+ax4 = Axis(fig[4, 1], 
+        xlabel = L"T",
+        ylabel = L"S_E", 
+        )
+scatter!(ax4, 1 ./ βs[1:end], EEs, label=L"\text{cMPO, }χ=3")
+scatter!(ax4, 1 ./ βs[1:end], EEs2, label=L"\text{cMPO, }χ=9")
+axislegend(ax4, position=:rb, framevisible=false)
 @show fig
 
 save("J1J2/J1J2_dimer_phase_result_gauged_results.pdf", fig)
