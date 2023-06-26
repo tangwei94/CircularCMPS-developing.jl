@@ -35,7 +35,7 @@ function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData
         χ, err = suggest_χ(Tψ, β; tol=alg.tol_ES, maxχ=alg.maxχ, minχ=get_χ(ψ))
         printstyled("[ power_iteration: next χ: $(χ), possible error: $(err) \n"; bold=true)
 
-        tol_compress = min(0.1*fidel, 1e-6)
+        tol_compress = min(0.1*abs(fidel), 1e-6)
         ψ1 = compress(Tψ, χ, β; init=ψ, maxiter=alg.maxiter_compress, verbosity=alg.verbosity, tol=tol_compress)
         fidel = real(2*ln_ovlp(ψ, ψ1, β) - ln_ovlp(ψ, ψ, β) - ln_ovlp(ψ1, ψ1, β))
 
