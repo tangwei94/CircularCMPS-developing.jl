@@ -1,5 +1,17 @@
+function entanglement_entropy(ψ::CMPSData, β::Real)
+    MA = permute(finite_env(ψ*ψ, β/2)[1], (1, 3), (2, 4))
+    MB = permute(finite_env(convert(TensorMap, (ψ*ψ)'), β/2)[1], (1, 3), (2, 4))
 
-function suggest_χ(ψ::CMPSData, β::Real, tol::Real=1e-9; maxχ::Int=32, minχ::Int=2)
+    ρA = sqrt(MA) * MB * sqrt(MA)
+    ρA = ρA / tr(ρA)
+
+    ΛA, _ = eigen(ρA)
+    SA = - real(tr(ΛA * log(ΛA)))
+
+    return SA 
+end
+
+function suggest_χ(ψ::CMPSData, β::Real; tol::Real=1e-9, maxχ::Int=32, minχ::Int=2)
     MA = permute(finite_env(ψ*ψ, β/2)[1], (1, 3), (2, 4))
     MB = permute(finite_env(convert(TensorMap, (ψ*ψ)'), β/2)[1], (1, 3), (2, 4))
 

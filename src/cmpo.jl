@@ -130,7 +130,7 @@ function ln_ovlp(ϕ::CMPSData, T::CMPO, ψ::CMPSData, L::Real)
     return finite_env(ϕ * (T * ψ), L)[2]
 end
 
-function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-9, verbosity::Integer=1, init=nothing, ϵ::Real=0, force_init=false)
+function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol::Real=1e-9, verbosity::Integer=1, init=nothing)
 
     if χ >= get_χ(ψ)
         @warn "no need to compress"
@@ -145,7 +145,7 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
         return real(-ln_ovlp(ϕ, ψ, L) - ln_ovlp(ψ, ϕ, L) + ln_ovlp(ϕ, ϕ, L) + ln_norm)
     end
 
-    # initial guess
+    # initial guess 1 ("reduced density matrix")
     @tensor M[-1; -2] := expK[1 -1 ; 1 -2]
     _, U = eig(M; sortby=λ->-real(λ))
     P = isometry(space(ψ), ℂ^χ)
@@ -155,28 +155,47 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     Q1 = U1inv * ψ.Q * U1
     Rs1 = Ref(U1inv) .* ψ.Rs .* Ref(U1)
     ψ1 = CMPSData(Q1, Rs1)
+
+    # initial guess 2 (pretend it's infinite. better for low T)
+    _, ψ2 = right_canonical(ψ);
+    CR, ψ2 = left_canonical(ψ2);
+    U2, _, _ = tsvd(CR, (1,), (2,); trunc= truncdim(χ))
+    Q2 = U2' * ψ.Q * U2
+    R2s = Ref(U2') .* ψ.Rs .* Ref(U2)
+    ψ2 = CMPSData(Q2, R2s)
+
+    # initial guess 3 (truncate Q matrix)
+
     if init === nothing || get_χ(init) > χ 
         (verbosity >= 1) && println("no init available")
-    else
-        if get_χ(init) < χ
-            init = expand(init, χ, L; perturb=tol)
-        end
-        f1 = _f(ψ1)
-        finit = _f(init)
-        if finit < f1 || force_init
-            (verbosity >= 2) && println("input init is chosen. f1: $(f1), finit: $(finit) ")
-            ψ1 = init
-        else 
-            (verbosity >= 1) && println("input init is not chosen. f1: $(f1), finit: $(finit) ")
-        end
+        init = CMPSData(rand, χ, get_d(ψ1))
     end
-    ψ1 = ψ1 + ϵ * CMPSData(rand, χ, get_d(ψ1)) #perturb
+
+    if get_χ(init) < χ
+        init = expand(init, χ, L; perturb=tol)
+    end
+
+    f1 = _f(ψ1)
+    f2 = _f(ψ2)
+    finit = _f(init)
+    if finit < f1 && finit < f2 
+        (verbosity >= 2) && println("input init is chosen. \n f1: $(f1), f2: $(f2), finit: $(finit) ")
+    end
+    if f1 < f2 && f1 < finit 
+        (verbosity >= 1) && println("input init is not chosen, use ψ1 instead. \n f1: $(f1), f2: $(f2), finit: $(finit) ")
+        init = ψ1
+    end
+    if f2 < f1 && f2 < finit 
+        (verbosity >= 1) && println("input init is not chosen, use ψ2 instead. \n f1: $(f1), f2: $(f2), finit: $(finit) ")
+        init = ψ2
+    end
+    
 
     # optimization 
     optalg = CircularCMPSRiemannian(maxiter, tol, verbosity)
-    ψ1, ln_fidel, grad, numfg, history = minimize(_f, ψ1, optalg)
+    ψout, ln_fidel, grad, numfg, history = minimize(_f, init, optalg)
 
-    return ψ1#, ln_fidel, grad, numfg, history 
+    return ψout#, ln_fidel, grad, numfg, history 
 end
 
 function leading_boundary_cmps(T::CMPO, init::CMPSData, β::Real; maxiter::Integer=1000, tol::Real=1e-9, verbosity::Integer=2, ϵ::Real=1e-6)
