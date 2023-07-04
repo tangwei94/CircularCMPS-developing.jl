@@ -1,9 +1,9 @@
 @with_kw struct PowerMethod 
     maxiter_power::Int = 200
-    spect_shifting::Real = 1
+    spect_shifting::Real = 1 # useful when the system breaks the translational symmetry at low temperatures; otherwise it can be zero
     maxχ::Int = 40
-    tol_fidel::Real = 1e-8 # The tolerance for fidelity is preferably not greater than 1e-8, otherwise the results will be inaccurate.The tolerance for fidelity is preferably not greater than 1e-8, otherwise the results will be inaccurate.
-    tol_ES::Real = 1e-7
+    tol_fidel::Real = 1e-8 # The tolerance for fidelity is preferably not greater than 1e-8, otherwise the results will be inaccurate.
+    tol_ES::Real = 1e-7 # preferably, start from 1e-7, and gradually lower the tolerance
     maxiter_compress::Int = 250
     verbosity::Int = 1
 end

@@ -1,4 +1,4 @@
-function entanglement_entropy(ψ::CMPSData, β::Real)
+function half_chain_singular_values(ψ::CMPSData, β::Real)
     MA = permute(finite_env(ψ*ψ, β/2)[1], (1, 3), (2, 4))
     MB = permute(finite_env(convert(TensorMap, (ψ*ψ)'), β/2)[1], (1, 3), (2, 4))
 
@@ -6,19 +6,18 @@ function entanglement_entropy(ψ::CMPSData, β::Real)
     ρA = ρA / tr(ρA)
 
     ΛA, _ = eigen(ρA)
+    return ΛA
+end
+
+function entanglement_entropy(ψ::CMPSData, β::Real)
+    ΛA = half_chain_singular_values(ψ, β)
     SA = - real(tr(ΛA * log(ΛA)))
 
     return SA 
 end
 
 function suggest_χ(ψ::CMPSData, β::Real; tol::Real=1e-9, maxχ::Int=32, minχ::Int=2)
-    MA = permute(finite_env(ψ*ψ, β/2)[1], (1, 3), (2, 4))
-    MB = permute(finite_env(convert(TensorMap, (ψ*ψ)'), β/2)[1], (1, 3), (2, 4))
-
-    ρA = sqrt(MA) * MB * sqrt(MA)
-    ρA = ρA / tr(ρA)
-
-    ΛA, _ = eigen(ρA)
+    ΛA = half_chain_singular_values(ψ, β)
     SA = reverse(norm.(diag(ΛA.data)))
     χ1 = min(floor(Int, sqrt(sum(SA .> tol))), maxχ)
     χ1 = max(χ1, minχ)
