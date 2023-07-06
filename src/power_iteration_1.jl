@@ -12,7 +12,7 @@ function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData
     printstyled("\n[ power_iteration: doing power method with 
         β = $(β)
         maxiter_power = $(alg.maxiter_power) 
-        spect_shifting = $(alg.spect_shifting)    
+        spect_shifting = $(alg.spect_shifting)
         maxχ = $(alg.maxχ)
         tol_fidel=$(alg.tol_fidel)
         tol_ES=$(alg.tol_ES)

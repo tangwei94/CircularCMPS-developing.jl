@@ -81,7 +81,7 @@ end
 function gauge_fixing(ϕ1::CMPSData, ϕ2::CMPSData, β::Real; verbosity::Int=0, gradtol::Real=1e-10, maxiter::Int=100)
     χ = dim(space(ϕ1))
 
-    ϕ1 = gauge_fixing(ϕ1, β)
+    #ϕ1 = gauge_fixing(ϕ1, β)
     ϕ2 = gauge_fixing(ϕ2, β)
     function _f(V)
         ΔQ = V * ϕ2.Q * V' - ϕ1.Q

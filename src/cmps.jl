@@ -22,10 +22,11 @@ end
 
 # operations on the data. not on the cMPS
 Base.:+(ψ::CMPSData, ϕ::CMPSData) = CMPSData(ψ.Q + ϕ.Q, ψ.Rs .+ ϕ.Rs)
-Base.:+(ψ::CMPSData, ϕ::Base.RefValue) = (ψ + CMPSData(ϕ[].Q, ϕ[].Rs)) # TODO. used to fix autodiff in leading_boundary_cmps. Better way to fix this?
+Base.:+(ψ::CMPSData, ϕ::Base.RefValue) = (ψ + CMPSData(ϕ[].Q, ϕ[].Rs)) # TODO. used to fix autodiff in leading_boundary_cmps. fix _fg in optimalg
 Base.:-(ψ::CMPSData, ϕ::CMPSData) = CMPSData(ψ.Q - ϕ.Q, ψ.Rs .- ϕ.Rs)
 Base.:*(ψ::CMPSData, x::Number) = CMPSData(ψ.Q * x, ψ.Rs .* x)
 Base.:*(x::Number, ψ::CMPSData) = CMPSData(ψ.Q * x, ψ.Rs .* x)
+LinearAlgebra.norm(ψ::CMPSData) = sqrt(norm(ψ.Q)^2 + norm(ψ.Rs)^2)
 
 function Base.similar(ψ::CMPSData) 
     Q = similar(ψ.Q)

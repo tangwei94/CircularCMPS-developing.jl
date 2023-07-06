@@ -164,8 +164,6 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     R2s = Ref(U2') .* ψ.Rs .* Ref(U2)
     ψ2 = CMPSData(Q2, R2s)
 
-    # initial guess 3 (truncate Q matrix)
-
     if init === nothing || get_χ(init) > χ 
         (verbosity >= 1) && println("no init available")
         init = CMPSData(rand, χ, get_d(ψ1))
@@ -179,18 +177,17 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     f2 = _f(ψ2)
     finit = _f(init)
     if finit < f1 && finit < f2 
-        (verbosity >= 2) && println("input init is chosen. \n f1: $(f1), f2: $(f2), finit: $(finit) ")
+        (verbosity >= 1) && printstyled("input init is chosen: finit: $(finit), ginit: $(norm(_f'(init))) \n"; color=:grey)
     end
     if f1 < f2 && f1 < finit 
-        (verbosity >= 1) && println("input init is not chosen, use ψ1 instead. \n f1: $(f1), f2: $(f2), finit: $(finit) ")
+        (verbosity >= 1) && printstyled("input init is not chosen, use ψ1 instead. \n f1: $(f1), f2: $(f2), finit: $(finit) "; color=:grey)
         init = ψ1
     end
     if f2 < f1 && f2 < finit 
-        (verbosity >= 1) && println("input init is not chosen, use ψ2 instead. \n f1: $(f1), f2: $(f2), finit: $(finit) ")
+        (verbosity >= 1) && printstyled("input init is not chosen, use ψ2 instead. \n f1: $(f1), f2: $(f2), finit: $(finit) "; color=:grey)
         init = ψ2
     end
     
-
     # optimization 
     optalg = CircularCMPSRiemannian(maxiter, tol, verbosity)
     ψout, ln_fidel, grad, numfg, history = minimize(_f, init, optalg)

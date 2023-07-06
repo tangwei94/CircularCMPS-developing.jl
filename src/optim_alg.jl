@@ -63,3 +63,37 @@ function minimize(_f, init::CMPSData, alg::CircularCMPSRiemannian)
 
     return ψopt, fvalue, grad, numfg, history
 end
+
+struct OptimNumber <: Algorithm
+    maxiter::Int
+    tol::Real 
+    verbosity::Int
+end
+
+function minimize(_f, init::Number, alg::OptimNumber)
+    
+    function _fg(x::Number)
+        return _f(x), _f'(x) 
+    end
+    function inner(x, x1::Number, x2::Number)
+        return real(x1' * x2)
+    end
+    function retract(x::Number, dx::Number, α::Real)
+        return x+ α*dx, dx
+    end
+    function scale!(dx::Number, α::Number)
+        dx *= α
+        return dx
+    end
+    function add!(dx::Number, dx1::Number, α::Number)
+        dx += dx1 * α
+        return dx
+    end
+    transport!(v, x, d, α, xnew) = v
+    
+    optalg_LBFGS = LBFGS(;maxiter=alg.maxiter, gradtol=alg.tol, verbosity=alg.verbosity)
+
+    ψopt, fvalue, grad, numfg, history = optimize(_fg, init, optalg_LBFGS; retract=retract,  inner=inner, transport! =transport!, scale! =scale!, add! =add!)
+
+    return ψopt, fvalue, grad, numfg, history
+end
