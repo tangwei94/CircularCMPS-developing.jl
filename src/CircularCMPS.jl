@@ -1,5 +1,10 @@
 module CircularCMPS
 
+# TODO. 
+# - lazy evaluation for backward gradients 
+# - struct "optimization_state", including the cMPS and environments etc
+# - symmetries
+
 __precompile__(true)
 
 using Parameters
@@ -35,7 +40,7 @@ export CircularCMPSRiemannian, minimize, leading_boundary_cmps
 export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum, W_mul, variance, free_energy, energy, klein, inner
 
 # cmpo_zoo.jl
-export ising_cmpo, xxz_af_cmpo, xxz_fm_cmpo, heisenberg_j1j2_cmpo
+export ising_cmpo, xxz_af_cmpo, xxz_fm_cmpo, heisenberg_j1j2_cmpo, rydberg_cmpo
 
 # entanglement.jl 
 export entanglement_entropy

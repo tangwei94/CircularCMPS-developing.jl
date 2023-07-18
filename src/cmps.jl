@@ -26,7 +26,8 @@ Base.:+(ψ::CMPSData, ϕ::Base.RefValue) = (ψ + CMPSData(ϕ[].Q, ϕ[].Rs)) # TO
 Base.:-(ψ::CMPSData, ϕ::CMPSData) = CMPSData(ψ.Q - ϕ.Q, ψ.Rs .- ϕ.Rs)
 Base.:*(ψ::CMPSData, x::Number) = CMPSData(ψ.Q * x, ψ.Rs .* x)
 Base.:*(x::Number, ψ::CMPSData) = CMPSData(ψ.Q * x, ψ.Rs .* x)
-LinearAlgebra.norm(ψ::CMPSData) = sqrt(norm(ψ.Q)^2 + norm(ψ.Rs)^2)
+LinearAlgebra.dot(ψ1::CMPSData, ψ2::CMPSData) = dot(ψ1.Q, ψ2.Q) + sum(dot.(ψ1.Rs, ψ2.Rs))
+LinearAlgebra.norm(ψ::CMPSData) = sqrt(norm(dot(ψ, ψ)))
 
 function Base.similar(ψ::CMPSData) 
     Q = similar(ψ.Q)

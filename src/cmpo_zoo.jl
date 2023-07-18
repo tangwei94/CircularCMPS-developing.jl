@@ -87,3 +87,24 @@ function heisenberg_j1j2_cmpo_deprecated(J1::Real, J2::Real)
     T = CMPO(zero2, Ls, Rs, Ps)
     return T, W
 end
+
+"""
+    construct cMPO for the rydberg atom chain
+        H = -Ω/2 ∑ σ^x - Δ ∑ n + V ∑_{j<l} n_j n_l / (j-l)^6
+"""
+function rydberg_cmpo(Ω::Real, Δ::Real, V::Real)
+    Id, σx, σz, zero2 = pauli.Id, pauli.σx, pauli.σz, pauli.zero2
+    n = 0.5 * (σz + Id)
+    Q = Ω/2 * σx + Δ * n
+    Lcoeffs = [0.9178622276427676, 0.310356218294415, -0.19379426188409468, 0.12643720879864367, -0.0778855036290297]
+    Pcoeffs = [0.004072756499721004, 0.06032681098634473, 0.19582380494942775, 0.3920164608078191, 0.6078552227771817]
+    Ls = -sqrt(V) .* Lcoeffs .* Ref(n)
+    Rs = sqrt(V) .* Lcoeffs .* Ref(n)
+    Ps = fill(zero2, 5, 5)
+    for ix in 1:5
+        Ps[ix, ix] = Pcoeffs[ix] * Id 
+    end
+    T = CMPO(zero2, Ls, Rs, Ps)
+    W = - Matrix{Float64}(I, 5, 5)
+    return T, W
+end
