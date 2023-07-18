@@ -10,4 +10,5 @@ J1J2/critical*.jld2
 J1J2/*result*/*.jld2
 J1J2/*deprecated*/*.jld2
 heisenberg/results
+rydberg/results
 xxz/*.jld2
