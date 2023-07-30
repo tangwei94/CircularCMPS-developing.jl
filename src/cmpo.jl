@@ -157,36 +157,37 @@ function compress(ψ::CMPSData, χ::Integer, L::Real; maxiter::Integer=100, tol:
     ψ1 = CMPSData(Q1, Rs1)
 
     # initial guess 2 (pretend it's infinite. better for low T)
-    _, ψ2 = right_canonical(ψ);
-    CR, ψ2 = left_canonical(ψ2);
-    U2, _, _ = tsvd(CR, (1,), (2,); trunc= truncdim(χ))
-    Q2 = U2' * ψ.Q * U2
-    R2s = Ref(U2') .* ψ.Rs .* Ref(U2)
-    ψ2 = CMPSData(Q2, R2s)
+    #_, ψ2 = right_canonical(ψ);
+    #CR, ψ2 = left_canonical(ψ2);
+    #U2, _, _ = tsvd(CR, (1,), (2,); trunc= truncdim(χ))
+    #Q2 = U2' * ψ.Q * U2
+    #R2s = Ref(U2') .* ψ.Rs .* Ref(U2)
+    #ψ2 = CMPSData(Q2, R2s)
 
     if init === nothing || get_χ(init) > χ 
         (verbosity >= 1) && println("no init available")
-        init = CMPSData(rand, χ, get_d(ψ1))
+        init = ψ1#CMPSData(rand, χ, get_d(ψ1))
     end
 
     if get_χ(init) < χ
         init = expand(init, χ, L; perturb=tol)
     end
 
-    f1 = _f(ψ1)
-    f2 = _f(ψ2)
-    finit = _f(init)
-    if finit < f1 && finit < f2 
-        (verbosity >= 1) && printstyled("input init is chosen: finit: $(finit), ginit: $(norm(_f'(init))) \n"; color=:grey)
-    end
-    if f1 < f2 && f1 < finit 
-        (verbosity >= 1) && printstyled("input init is not chosen, use ψ1 instead. \n f1: $(f1), f2: $(f2), finit: $(finit) "; color=:grey)
-        init = ψ1
-    end
-    if f2 < f1 && f2 < finit 
-        (verbosity >= 1) && printstyled("input init is not chosen, use ψ2 instead. \n f1: $(f1), f2: $(f2), finit: $(finit) "; color=:grey)
-        init = ψ2
-    end
+    #f1 = _f(ψ1)
+    #f2 = _f(ψ2)
+    #finit = _f(init)
+    # prefers init
+    #if 0.1*finit < f1 && 0.1*finit < f2 
+    (verbosity >= 1) && printstyled("input init is chosen: finit: $(_f(init)), ginit: $(norm(_f'(init))) \n"; color=:light_black)
+    #end
+    #if f1 < f2 && f1 < 0.1*finit 
+    #    (verbosity >= 1) && printstyled("input init is not chosen, use ψ1 instead. \n f1: $(f1), f2: $(f2), finit: $(finit) "; color=:light_black)
+    #    init = ψ1
+    #end
+    #if f2 < f1 && f2 < 0.1*finit 
+    #    (verbosity >= 1) && printstyled("input init is not chosen, use ψ2 instead. \n f1: $(f1), f2: $(f2), finit: $(finit) "; color=:light_black)
+    #    init = ψ2
+    #end
     
     # optimization 
     optalg = CircularCMPSRiemannian(maxiter, tol, verbosity)
