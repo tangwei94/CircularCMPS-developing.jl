@@ -96,15 +96,16 @@ function rydberg_cmpo(Ω::Real, Δ::Real, V::Real)
     Id, σx, σz, zero2 = pauli.Id, pauli.σx, pauli.σz, pauli.zero2
     n = 0.5 * (σz + Id)
     Q = Ω/2 * σx + Δ * n
-    Lcoeffs = [0.9178622276427676, 0.310356218294415, -0.19379426188409468, 0.12643720879864367, -0.0778855036290297]
-    Pcoeffs = [0.004072756499721004, 0.06032681098634473, 0.19582380494942775, 0.3920164608078191, 0.6078552227771817]
+
+    Lcoeffs = [0.9466124233059502, 0.313658064032059, -0.07379945398585185,  -0.009857966417422223]
+    Pcoeffs = [0.005551029942376822, 0.09097599520568882, 0.3016128475646945, 0.5950264018004182]
     Ls = -sqrt(V) .* Lcoeffs .* Ref(n)
     Rs = sqrt(V) .* Lcoeffs .* Ref(n)
-    Ps = fill(zero2, 5, 5)
-    for ix in 1:5
+    Ps = fill(zero2, 4, 4)
+    for ix in 1:4
         Ps[ix, ix] = Pcoeffs[ix] * Id 
     end
-    T = CMPO(zero2, Ls, Rs, Ps)
-    W = - Matrix{Float64}(I, 5, 5)
+    T = CMPO(Q, Ls, Rs, Ps)
+    W = - Matrix{Float64}(I, 4, 4)
     return T, W
 end
