@@ -26,6 +26,13 @@ function Base.similar(ψ::MultiBosonCMPSData)
     return MultiBosonCMPSData(Q, Ms)
 end
 
+function randomize!(ψ::MultiBosonCMPSData)
+    randomize!(ψ.Q)
+    for ix in 1:length(ψ.Ms)
+        randomize!(ψ.Ms[ix])
+    end
+end
+
 function Base.zero(ψ::MultiBosonCMPSData) 
     Q = zero(ψ.Q)
     Ms = [zero(M) for M in ψ.Ms]
@@ -38,13 +45,28 @@ TensorKit.space(ψ::MultiBosonCMPSData) = _firstspace(ψ.Q)
 
 function CMPSData(ψ::MultiBosonCMPSData)
     χ, d = get_χ(ψ), get_d(ψ)
+    δ = isomorphism(ℂ^(χ^d), (ℂ^χ)^d)
     Rs = map(1:d) do ix
         Rops = repeat(MPSBondTensor[id(ℂ^χ)], d)
         Rops[ix] = ψ.Ms[ix]
-        δ = isomorphism(ℂ^(χ^d), (ℂ^χ)^d)
         return δ * foldr(⊗, Rops) * δ'
     end
     return CMPSData(ψ.Q, Rs)
+end
+
+function ChainRulesCore.rrule(::Type{CMPSData}, ψ::MultiBosonCMPSData)
+    χ, d = get_χ(ψ), get_d(ψ)
+    δ = isomorphism(ℂ^(χ^d), (ℂ^χ)^d)
+    function CMPSData_pushback(∂ψn)
+        ∂Ms = map(1:d) do ix
+            indicesl = [(3:ix+1); [-1]; (ix+2:d+1)]
+            indicesr = [(3:ix+1); [-2]; (ix+2:d+1)]
+            tmp∂M = @ncon([δ', ∂ψn.Rs[ix], δ], [[indicesl; 1], [1, 2], [2; indicesr]])
+            return permute(tmp∂M, (1,), (2,))
+        end
+        return NoTangent(), MultiBosonCMPSData(∂ψn.Q, ∂Ms)
+    end
+    return CMPSData(ψ), CMPSData_pushback
 end
 
 # transfer matrix in the space (ℂ^χ)^d ⊗ (ℂ^χ)'^d. deprecated 
