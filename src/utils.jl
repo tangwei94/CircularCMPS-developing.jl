@@ -35,6 +35,16 @@ function K_otimes(A::MPSBondTensor, B::MPSBondTensor)
     return Abar_otimes_B
 end
 
+function Kact_R(K::AbstractTensorMap{S, 2, 2}, v::MPSBondTensor) where {S<:EuclideanSpace}
+    @tensor Kr[-1; -2] := K[-1 2; 1 -2] * v[1; 2]
+    return Kr
+end
+
+function Kact_L(K::AbstractTensorMap{S, 2, 2}, v::MPSBondTensor) where {S<:EuclideanSpace}
+    @tensor Kl[-1; -2] := K[1 -1; -2 2] * v[2; 1]
+    return Kl
+end
+
 function herm_reg_inv(A::AbstractTensorMap, δ::Real)
     # A is Hermitian up to a phase
 

@@ -46,11 +46,6 @@ end
 TensorKit.space(ψ::CMPSData) = _firstspace(ψ.Q)
 TensorKit.norm(ϕ::CMPSData) =  sqrt(norm(ϕ.Q)^2 + norm(ϕ.Rs)^2)
 
-#function Base.iterate(ψ::CMPSData, i=1)
-    #data = [ψ.Q, ψ.Rs]
-    #(i > length(data)) ? nothing : (data[i],i+1)
-#end
-
 get_matrices(ψ::CMPSData) = (ψ.Q, ψ.Rs)
 
 # TODO. define transfer_matrix object as MPSKit.jl did
@@ -58,8 +53,6 @@ get_matrices(ψ::CMPSData) = (ψ.Q, ψ.Rs)
     transfer_matrix(ϕ::CMPSData, ψ::CMPSData) where S<:EuclideanSpace
 
     The transfer matrix for <ϕ|ψ>.
-    target at right vector. 
-    T = I + ϵK. returns K<ϕ|ψ>.
     target at right vector. 
     T = I + ϵK. returns K
 """
