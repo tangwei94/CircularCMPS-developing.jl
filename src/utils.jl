@@ -56,6 +56,22 @@ function herm_reg_inv(A::AbstractTensorMap, δ::Real)
 
 end
 
+function quasi_inv(A::AbstractTensorMap, δ::Real)
+    U, S, V = tsvd(A)
+    function f_pseudo_inv(x::Number)
+        if norm(x) < δ
+            return x
+        else
+            return 1/x
+        end
+    end
+    
+    for (k,v) in blocks(S)
+        map!(x->f_pseudo_inv(x), v, v);
+    end
+    return V' * S * U'
+end
+
 function ChainRulesCore.rrule(::typeof(TensorKit.exp), K::TensorMap)
     W, UR = eig(K)
     UL = inv(UR)

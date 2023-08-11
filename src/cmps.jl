@@ -35,6 +35,13 @@ function Base.similar(ψ::CMPSData)
     return CMPSData(Q, Rs)
 end
 
+function randomize!(ψ::CMPSData)
+    randomize!(ψ.Q)
+    for R in ψ.Rs
+        randomize!(R)
+    end
+end
+
 function Base.zero(ψ::CMPSData) 
     Q = zero(ψ.Q)
     Rs = [zero(R) for R in ψ.Rs]

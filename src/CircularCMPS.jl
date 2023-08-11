@@ -19,7 +19,7 @@ using Printf
 #using FastGaussQuadrature
 
 # utils.jl
-export MPSBondTensor, GenericMPSTensor, MPSTensor, fill_data!, randomize!, K_permute, K_permute_back, K_otimes, Kact_R, Kact_L, herm_reg_inv 
+export MPSBondTensor, GenericMPSTensor, MPSTensor, fill_data!, randomize!, K_permute, K_permute_back, K_otimes, Kact_R, Kact_L, herm_reg_inv, quasi_inv 
 
 # cmps.jl
 export AbstractCMPSData, CMPSData, get_χ, get_d, get_matrices, transfer_matrix, transfer_matrix_dagger, left_canonical, right_canonical, expand, K_mat, finite_env, rescale
@@ -33,11 +33,11 @@ export lieb_liniger_ground_state
 # excited_state.jl 
 export θ2, θ3, AbstractCoeffs, Coeff2, Coeff3, ExcitationData, gauge_fixing_map, effective_N, effective_H, Kac_Moody_gen
 
-# multi_boson_cmps.jl
-export MultiBosonCMPSData
-
 # transfer_matrix.jl
-export TransferMatrix, left_env, right_env
+export TransferMatrix, left_env, right_env, Kmat_pseudo_inv
+
+# multi_boson_cmps.jl
+export MultiBosonCMPSData, tangent_map
 
 # optim_alg.jl 
 export CircularCMPSRiemannian, minimize, leading_boundary_cmps

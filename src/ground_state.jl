@@ -7,7 +7,6 @@ function lieb_liniger_ground_state(c::Real, μ::Real, L::Real, ψ0::Union{CMPSDa
         return real(tr(expK * OH))
     end
 
-    # TODO. implement gradientcheck: check inner(d, g) = gradient with respect to alpha obtained from finite difference.
     function fgE(ψ::CMPSData)
         E = fE(ψ)
         ∂ψ = fE'(ψ) 

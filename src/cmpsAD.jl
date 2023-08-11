@@ -62,13 +62,16 @@ end
 """
 function ChainRulesCore.rrule(::typeof(get_matrices), ψ::CMPSData)
     fwd = get_matrices(ψ)
+    d = get_d(ψ)
     Q0 = zero(ψ.Q)
     R0s = [zero(R) for R in ψ.Rs]
     function get_matrices_pushback(f̄wd)
         (Q̄, R̄s) = f̄wd
         (Q̄ isa ZeroTangent) && (Q̄ = Q0)
-        (R̄s isa ZeroTangent) && (R̄s = R0s)
-        return NoTangent(), CMPSData(Q̄, R̄s)
+        for ix in 1:d
+            (R̄s[ix] isa ZeroTangent) && (R̄s[ix] = R0s[ix])
+        end
+        return NoTangent(), CMPSData(Q̄, typeof(R0s)(R̄s))
     end
     return fwd, get_matrices_pushback
 end

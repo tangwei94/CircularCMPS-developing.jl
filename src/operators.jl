@@ -18,6 +18,11 @@ function particle_density(ψ::CMPSData)
     _, Rs = get_matrices(ψ) 
     return sum(K_otimes.(Rs, Rs))
 end
+# TODO. add particle_density(ψ::CMPSData, coeffs)
+function particle_density(ψ::CMPSData, index::Integer)
+    _, Rs = get_matrices(ψ) 
+    return K_otimes(Rs[index], Rs[index])
+end
 
 """
     point_interaction(ψ::CMPSData) 
@@ -28,6 +33,21 @@ function point_interaction(ψ::CMPSData)
     _, Rs = get_matrices(ψ) 
     Oψ = Rs .* Rs
     return sum(K_otimes.(Oψ, Oψ))
+end
+function point_interaction(ψ::CMPSData, index::Integer)
+    _, Rs = get_matrices(ψ) 
+    Oψ = Rs[index] * Rs[index]
+    return K_otimes(Oψ, Oψ)
+end
+function point_interaction(ψ::CMPSData, index1::Integer, index2::Integer)
+    if index1 == index2
+        return point_interaction(ψ, index1)
+    end
+
+    _, Rs = get_matrices(ψ)
+    Oψ_1 = Rs[index1] * Rs[index1]
+    Oψ_2 = Rs[index2] * Rs[index2]
+    return K_otimes(Oψ_1, Oψ_2) + K_otimes(Oψ_2, Oψ_1)
 end
 
 """

@@ -49,20 +49,6 @@ function left_env(TM::TransferMatrix)
     return vrs[1]
 end
 
-function right_env(K::AbstractTensorMap{S, 2, 2}) where {S<:EuclideanSpace} 
-    init = similar(K, _firstspace(K)←_lastspace(K)')
-    randomize!(init);
-    λrs, vrs, _ = eigsolve(v -> Kact_R(K, v), init, 1, :LR)
-    return λrs[1], vrs[1]
-end
-
-function left_env(K::AbstractTensorMap{S, 2, 2}) where {S<:EuclideanSpace}
-    init = similar(K, _lastspace(K)'←_firstspace(K))
-    randomize!(init);
-    λls, vls, _ = eigsolve(v -> Kact_L(K, v), init, 1, :LR)
-    return λls[1], vls[1]
-end
-
 # backward for right_env, left_env, TransferMatrix
 struct TransferMatrixBackward <: AbstractTransferMatrix
     VLs::Vector{<:MPSBondTensor}
@@ -158,4 +144,42 @@ function ChainRulesCore.rrule(::Type{TransferMatrix}, ψu::CMPSData, ψd::CMPSDa
         return NoTangent(), CMPSData(∂Qu, ∂Rus), CMPSData(∂Qd, ∂Rds)
     end
     return TM, TransferMatrix_pushback 
+end
+
+
+function right_env(K::AbstractTensorMap{S, 2, 2}) where {S<:EuclideanSpace} 
+    init = similar(K, _firstspace(K)←_lastspace(K)')
+    randomize!(init);
+    λrs, vrs, _ = eigsolve(v -> Kact_R(K, v), init, 1, :LR)
+    return λrs[1], vrs[1]
+end
+
+function left_env(K::AbstractTensorMap{S, 2, 2}) where {S<:EuclideanSpace}
+    init = similar(K, _lastspace(K)'←_firstspace(K))
+    randomize!(init);
+    λls, vls, _ = eigsolve(v -> Kact_L(K, v), init, 1, :LR)
+    return λls[1], vls[1]
+end
+
+function Kmat_pseudo_inv(K::AbstractTensorMap{S, 2, 2}, λ::Number) where {S<:EuclideanSpace}
+    χ = dim(_firstspace(K))
+    IdK = id((ℂ^χ)'⊗ℂ^χ)
+    K1 = K_permute_back(K) - λ * IdK # normalize
+
+    Λ, U = eigen(K1)
+    Λ.data[end] = 0 # I add this to avoid numerical instablity
+    function f_pseudo_inv(x::Number)
+        if norm(x) < 1e-12
+            return x
+        else
+            return 1/x
+        end
+    end
+    for (k,v) in blocks(Λ)
+        map!(x->f_pseudo_inv(x), v, v);
+    end
+
+    Kinv = K_permute(U * Λ * inv(U)) 
+
+    return -Kinv
 end

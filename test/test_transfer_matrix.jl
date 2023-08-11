@@ -234,27 +234,40 @@ end
    
         return norm(tr(vl1)) / norm(vl1) + norm(tr(vr2))/norm(vr2) + norm(tr(vl1 * vr2)) / norm(vl1) / norm(vr2)
     end
+    c, μ = 1.212, 2.121
+    function _FE(ψ) # Lieb-Liniger Hamiltonian
+        OH = kinetic(ψ) + c*point_interaction(ψ) - μ * particle_density(ψ)
+        TM = TransferMatrix(ψ, ψ)
+        envL = permute(left_env(TM), (), (1, 2))
+        envR = permute(right_env(TM), (2, 1), ()) 
+        return real(tr(envL * OH * envR) / tr(envL * envR))
+    end
 
-    function test_grad(_F, ψ0)
-        sψ = similar(ψ0)
-        randomize!(sψ.Q)
-        for ix in 1:d
-            randomize!(sψ.Rs[ix])
-        end
-
-        α = 1e-5
-        gα1 = (_F(ψ0 + α * sψ) - _F(ψ0 - α * sψ)) / (2 * α)
-        α = 1e-6
-        gα2 = (_F(ψ0 + α * sψ) - _F(ψ0 - α * sψ)) / (2 * α)
-
-        dψ = _F'(ψ0);
-        gαa = real(dot(dψ, sψ))
-        @test abs(gα1 - gαa) < 1e-5
-        @test abs(gα2 - gαa) < 1e-6
-    end 
-
-    test_grad(_F1, ψn)
-    test_grad(_F2, ψn)
-    test_grad(_F1, ϕn)
-    test_grad(_F2, ϕn)
+    test_ADgrad(_F1, ψn)
+    test_ADgrad(_F2, ψn)
+    test_ADgrad(_FE, ψn)
+    test_ADgrad(_F1, ϕn)
+    test_ADgrad(_F2, ϕn)
+    test_ADgrad(_FE, ϕn)
 end
+
+@testset "test Kmat_pseudo_inv" for ix in 1:10
+
+    ψ = CMPSData(rand, 4, 2)
+    ϕ = CMPSData(rand, 4, 2)
+
+    K = K_permute(K_mat(ψ, ψ))
+    λ, EL = left_env(K)
+    λ, ER = right_env(K)
+    Kinv = Kmat_pseudo_inv(K, λ);
+    @test norm(Kact_R(Kinv, ER)) < 1e-12
+    @test norm(Kact_L(Kinv, EL)) < 1e-12
+
+    K = K_permute(K_mat(ψ, ϕ))
+    λ, EL = left_env(K)
+    λ, ER = right_env(K)
+    Kinv = Kmat_pseudo_inv(K, λ);
+    @test norm(Kact_R(Kinv, ER)) < 1e-12
+    @test norm(Kact_L(Kinv, EL)) < 1e-12
+end
+
