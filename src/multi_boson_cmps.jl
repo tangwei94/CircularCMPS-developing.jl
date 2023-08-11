@@ -138,3 +138,8 @@ function tangent_map(ψm::MultiBosonCMPSData, Xm::MultiBosonCMPSData, EL::MPSBon
 
     return MultiBosonCMPSData(CMPSData(mapped_XQ, mapped_XRs)) 
 end
+
+function tangent_map_matrix(tmap::Function, χ::Int, d::Int)
+
+
+end

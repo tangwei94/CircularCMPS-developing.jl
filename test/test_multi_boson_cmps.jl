@@ -44,51 +44,60 @@ end
     test_ADgrad(_F2, ψ)
 end
 
-# TODO. tangent_map should be hermitian and positive definite
-χ, d = 8, 2
-ψ = MultiBosonCMPSData(rand, χ, d)
-@load "not_positive_definite.jld2" ψ0
-ψ = ψ0;
-@show norm(ψ)
+@testset "test Kmat_pseudo_inv by numerical integration" for ix in 1:10
+    χ, d = 8, 2
+    ψ = MultiBosonCMPSData(rand, χ, d)
 
-ψn = CMPSData(ψ);
-K = K_permute(K_mat(ψn, ψn));
-λ, EL = left_env(K);
-λ, ER = right_env(K);
-Kinv = Kmat_pseudo_inv(K, λ);
-norm(Kinv), λ
+    ψn = CMPSData(ψ);
+    K = K_permute(K_mat(ψn, ψn));
+    λ, EL = left_env(K);
+    λ, ER = right_env(K);
+    Kinv = Kmat_pseudo_inv(K, λ);
 
-eigen(K_permute_back(K))[1].data |> diag
+    VL = Tensor(rand, ComplexF64, (ℂ^χ)'⊗ℂ^χ)
+    VR = Tensor(rand, ComplexF64, (ℂ^χ)'⊗ℂ^χ)
 
-∂ψ = fE'(ψ)
+    IdK = K_permute(id((ℂ^χ)'⊗ℂ^χ))
+    K_nm = K - λ * IdK
+    K0_nm = K_permute_back(K_nm)
 
-VL = Tensor(rand, ComplexF64, (ℂ^χ)'⊗ℂ^χ)
-VR = Tensor(rand, ComplexF64, (ℂ^χ)'⊗ℂ^χ)
+    Kinf = exp(1e4*K0_nm)
+    @test norm(Kinf) ≈ 1/norm(tr(EL * ER))
 
-IdK = K_permute(id((ℂ^χ)'⊗ℂ^χ))
-K_nm = K - λ * IdK
-K0_nm = K_permute_back(K_nm)
+    Λ0, U0 = eigen(K0_nm)
+    @test norm(exp(12*K0_nm) - U0 * exp(12*Λ0) * inv(U0)) < 1e-12
+    
+    δ = isometry(ℂ^(χ^2), ℂ^(χ^2-1))
+    Λr, Ur, invUr = δ' * Λ0 * δ, U0 * δ, δ' * inv(U0)
 
-Kinf = exp(1e3*K0_nm)
-@test norm(Kinf) ≈ 1/norm(tr(EL * ER))
+    a1, err = quadgk(τ -> tr(VL' * Ur * exp(τ * Λr) * invUr * VR), 0, 1e4)
+    a2 = tr(VL' * K_permute_back(Kinv) * VR)
+    @test norm(a1 - a2) < 100 * err
 
-a1, err = quadgk(τ -> tr(VL' * (exp(τ*K0_nm) - Kinf) * VR), 0, 1e3)
-a2 = tr(VL' * K_permute_back(Kinv) * VR)
-@test norm(a1 - a2) < 100 * err
-
-M = zeros(ComplexF64, χ^2+d*χ, χ^2+d*χ)
-for ix in 1:(χ^2+d*χ)
-    v = zeros(χ^2+d*χ)
-    v[ix] = 1
-
-    X = MultiBosonCMPSData(v, χ, d)
-    v1 = vec(tangent_map(ψ, X, EL, ER, Kinv))
-    M[:, ix] = v1
-    @show norm(v1)
 end
 
-@test norm(M - M') < 1e-12
-a, _ = eigen(Hermitian(M))
-@test a[1] > -1e-12
+@testset "tangent_map should be hermitian and positive definite" for ix in 1:10
+    χ, d = 8, 2
+    ψ = MultiBosonCMPSData(rand, χ, d)
 
-# TODO. tangent_map should conincide with numerical integration results
+    ψn = CMPSData(ψ);
+    K = K_permute(K_mat(ψn, ψn));
+    λ, EL = left_env(K);
+    λ, ER = right_env(K);
+    Kinv = Kmat_pseudo_inv(K, λ);
+
+    M = zeros(ComplexF64, χ^2+d*χ, χ^2+d*χ)
+    for ix in 1:(χ^2+d*χ)
+        v = zeros(χ^2+d*χ)
+        v[ix] = 1
+
+        X = MultiBosonCMPSData(v, χ, d)
+        v1 = vec(tangent_map(ψ, X, EL, ER, Kinv))
+        M[:, ix] = v1
+        @show norm(v1)
+    end
+
+    @test norm(M - M') < 1e-12
+    a, _ = eigen(Hermitian(M))
+    @test a[1] > -1e-12
+end
