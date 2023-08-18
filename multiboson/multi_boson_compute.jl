@@ -31,8 +31,8 @@ res3_wop = ground_state(Hm, ϕ3; do_preconditioning=false, maxiter=5000);
 
 @save "multiboson/results/unpreconditioned_$(c1)_$(c2)_$(c12)_$(μ1)_$(μ2).jld2" res1_wop res2_wop res3_wop
 
-c2, μ2 = 1., 2.
-c12 = 0.5
+#c2, μ2 = 1.5, 2.5
+#c12 = 0.5
 @load "multiboson/results/unpreconditioned_$(c1)_$(c2)_$(c12)_$(μ1)_$(μ2).jld2" res1_wop res2_wop res3_wop
 @load "multiboson/results/preconditioned_$(c1)_$(c2)_$(c12)_$(μ1)_$(μ2).jld2" res1_wp res2_wp res3_wp
 @load "multiboson/results/seperate_computation_$(c1)_$(c2)_$(μ1)_$(μ2).jld2" E_χ4 E_χ8
