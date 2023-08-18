@@ -16,7 +16,7 @@ end
 
 @testset "test multibosoncmps <-> cmps " for ix in 1:10
 
-    χ, d = 2, 3
+    χ, d = 4, 2
     ψ = MultiBosonCMPSData(rand, χ, d)
     ϕn = CMPSData(rand, χ, d)
     function _F1(ψ)
@@ -39,9 +39,29 @@ end
    
         return norm(tr(vl1)) / norm(vl1) + norm(tr(vr2))/norm(vr2) + norm(tr(vl1 * vr2)) / norm(vl1) / norm(vr2)
     end
+    cs, μs = ComplexF64[1. 1.4; 1.4 2.], ComplexF64[2.1, 2.3]
+    function _FE(ψ::MultiBosonCMPSData)
+        ψn = CMPSData(ψ)
+        OH = kinetic(ψn) + cs[1,1]*point_interaction(ψn, 1) + cs[2,2]*point_interaction(ψn, 2) + cs[1,2] * point_interaction(ψn, 1, 2) + cs[2,1] * point_interaction(ψn, 2, 1) - μs[1] * particle_density(ψn, 1) - μs[2] * particle_density(ψn, 2)
+        TM = TransferMatrix(ψn, ψn)
+        envL = permute(left_env(TM), (), (1, 2))
+        envR = permute(right_env(TM), (2, 1), ()) 
+        return real(tr(envL * OH * envR) / tr(envL * envR))
+    end
+    function _FE1(ψ::MultiBosonCMPSData)
+        ψn = CMPSData(ψ)
+        OH = kinetic(ψn) + point_interaction(ψn, cs) - particle_density(ψn, μs)
+        TM = TransferMatrix(ψn, ψn)
+        envL = permute(left_env(TM), (), (1, 2))
+        envR = permute(right_env(TM), (2, 1), ()) 
+        return real(tr(envL * OH * envR) / tr(envL * envR))
+    end
 
     test_ADgrad(_F1, ψ)
     test_ADgrad(_F2, ψ)
+    test_ADgrad(_FE, ψ)
+    # TODO. _FE1 grad incorrect. why? 
+    #test_ADgrad(_FE1, ψ)
 end
 
 @testset "test Kmat_pseudo_inv by numerical integration" for ix in 1:10

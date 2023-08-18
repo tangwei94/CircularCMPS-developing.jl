@@ -54,6 +54,9 @@ export entanglement_entropy
 # power_iteration.jl 
 export PowerMethod, power_iteration
 
+# hamiltonian_zoo.jl
+export AbstractHamiltonian, SingleBosonLiebLiniger, MultiBosonLiebLiniger, ground_state
+
 # cMPS code for continuous Hamiltonians
 include("utils.jl");
 include("cmps.jl");
@@ -63,6 +66,7 @@ include("ground_state.jl")
 include("excited_state.jl");
 include("multi_boson_cmps.jl");
 include("transfer_matrix.jl");
+include("hamiltonian_zoo.jl")
 
 # cMPO code
 include("optim_alg.jl");

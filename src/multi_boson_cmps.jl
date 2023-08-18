@@ -99,21 +99,17 @@ function ChainRulesCore.rrule(::Type{CMPSData}, ψ::MultiBosonCMPSData)
     return CMPSData(ψ), CMPSData_pushback
 end
 
-function expand(ψ::MultiBosonCMPSData, χ::Integer; perturb::Float64=1e-3)
+function expand(ψ::MultiBosonCMPSData, χ::Integer; perturb::Float64=1e-1)
     χ0, d = get_χ(ψ), get_d(ψ)
     if χ <= χ0
         @warn "new χ not bigger than χ0"
         return ψ
     end
     Q = perturb * randn(eltype(ψ), χ, χ)
-    Q[1:χ0, 1:χ0] += ψ.Q
-    E, _ = eigen(Q)
-    for ix in χ0+1:χ
-        Q[ix, ix] += minimum(real.(E)) - 0.01 # suppress
-    end
+    Q[1:χ0, 1:χ0] = ψ.Q
 
     Λs = perturb * randn(eltype(ψ), χ, d)
-    Λs[1:χ0, 1:d] += ψ.Λs
+    Λs[1:χ0, 1:d] = ψ.Λs
 
     return MultiBosonCMPSData(Q, Λs) 
 end
