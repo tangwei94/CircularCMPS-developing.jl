@@ -39,6 +39,9 @@ export TransferMatrix, left_env, right_env, Kmat_pseudo_inv
 # multi_boson_cmps.jl
 export MultiBosonCMPSData, tangent_map
 
+# multi_boson_cmps_P.jl
+export MultiBosonCMPSData_P, tangent_map
+
 # optim_alg.jl 
 export CircularCMPSRiemannian, minimize, leading_boundary_cmps
 
@@ -65,6 +68,7 @@ include("operators.jl");
 include("ground_state.jl")
 include("excited_state.jl");
 include("multi_boson_cmps.jl");
+include("multi_boson_cmps_P.jl");
 include("transfer_matrix.jl");
 include("hamiltonian_zoo.jl")
 
