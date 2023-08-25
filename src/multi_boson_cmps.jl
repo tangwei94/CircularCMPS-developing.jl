@@ -4,8 +4,8 @@ mutable struct MultiBosonCMPSData{T<:Number} <: AbstractCMPSData
 end
 
 function MultiBosonCMPSData(f, χ::Integer, d::Integer)
-    Q = rand(ComplexF64, χ, χ)
-    Λs = rand(ComplexF64, χ, d)
+    Q = f(ComplexF64, χ, χ)
+    Λs = f(ComplexF64, χ, d)
     return MultiBosonCMPSData{ComplexF64}(Q, Λs)
 end
 
@@ -46,7 +46,6 @@ function LinearAlgebra.axpby!(α, ψ1::MultiBosonCMPSData, β, ψ2::MultiBosonCM
     axpby!(α, ψ1.Λs, β, ψ2.Λs)
     return ψ2
 end
-
 
 function Base.similar(ψ::MultiBosonCMPSData) 
     Q = similar(ψ.Q)
@@ -92,7 +91,6 @@ function MultiBosonCMPSData(ψ::CMPSData)
 end
 
 function ChainRulesCore.rrule(::Type{CMPSData}, ψ::MultiBosonCMPSData)
-    χ, d = get_χ(ψ), get_d(ψ)
     function CMPSData_pushback(∂ψ)
         return NoTangent(), MultiBosonCMPSData(∂ψ)
     end
