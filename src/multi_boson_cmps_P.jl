@@ -45,7 +45,7 @@ function LinearAlgebra.axpy!(α, ψ1::MultiBosonCMPSData_P, ψ2::MultiBosonCMPSD
     end
     return ψ2
 end
-function LinearAlgebra.axpby!(α, ψ1::MultiBosonCMPSData, β, ψ2::MultiBosonCMPSData)
+function LinearAlgebra.axpby!(α, ψ1::MultiBosonCMPSData_P, β, ψ2::MultiBosonCMPSData_P)
     axpby!(α, ψ1.Q, β, ψ2.Q)
     for (M1, M2) in zip(ψ1.Ms, ψ2.Ms)
         axpby!(α, M1, β, M2)
@@ -118,9 +118,10 @@ function expand(ψ::MultiBosonCMPSData_P, χ::Integer; perturb::Float64=1e-3)
     fill_data!(mask, randn)
     mask = perturb * mask
     Q = copy(mask)
-    Q.data[1:χ0, 1:χ0] += ψ.Q.data
-    for ix in χ0+1:χ
-        Q.data[ix, ix] += 2*log(perturb)/L # suppress
+    Q.data[1:(χ0^d), 1:(χ0^d)] += ψ.Q.data
+    ΛQ, _ = eigen(ψ.Q)
+    for ix in (χ0^d)+1:(χ^d)
+        Q.data[ix, ix] -= ΛQ[χ0^d, χ0^d] # suppress
     end
 
     Ms = MPSBondTensor[]
@@ -136,10 +137,10 @@ function expand(ψ::MultiBosonCMPSData_P, χ::Integer; perturb::Float64=1e-3)
 end
 
 function tangent_map(ψm::MultiBosonCMPSData_P, Xm::MultiBosonCMPSData_P, EL::MPSBondTensor, ER::MPSBondTensor, Kinv::AbstractTensorMap{S, 2, 2}) where {S<:EuclideanSpace}
-    χ = get_χ(ψm)
+    χ, d = get_χ(ψm), get_d(ψm)
     ψ = CMPSData(ψm)
     X = CMPSData(Xm)
-    Id = id(ℂ^χ)
+    Id = id(ℂ^(χ^d))
 
     ER /= tr(EL * ER)
 

@@ -103,7 +103,7 @@ function expand(ψ::MultiBosonCMPSData, χ::Integer; perturb::Float64=1e-1)
         @warn "new χ not bigger than χ0"
         return ψ
     end
-    Q = perturb * randn(eltype(ψ), χ, χ)
+    Q = 0.1 * randn(eltype(ψ), χ, χ)
     Q[1:χ0, 1:χ0] = ψ.Q
 
     Λs = perturb * randn(eltype(ψ), χ, d)

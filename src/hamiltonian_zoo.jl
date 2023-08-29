@@ -207,21 +207,21 @@ function ground_state(H::MultiBosonLiebLiniger, ψ0::MultiBosonCMPSData_P; do_pr
         end
 
         function retract(ψ::MultiBosonCMPSData_P, dψ::MultiBosonCMPSData_P, α::Real)
-            Λs = ψ.Λs .+ α .* dψ.Λs 
+            Ms = ψ.Ms .+ α .* dψ.Ms 
             Q = ψ.Q + α * dψ.Q
-            ψ1 = MultiBosonCMPSData_P(Q, Λs)
+            ψ1 = MultiBosonCMPSData_P(Q, Ms)
             return ψ1, dψ
         end
 
         function scale!(dψ::MultiBosonCMPSData_P, α::Number)
             dψ.Q = dψ.Q * α
-            dψ.Λs .= dψ.Λs .* α
+            dψ.Ms .= dψ.Ms .* α
             return dψ
         end
 
         function add!(dψ::MultiBosonCMPSData_P, dψ1::MultiBosonCMPSData_P, α::Number) 
             dψ.Q += dψ1.Q * α
-            dψ.Λs .+= dψ1.Λs .* α
+            dψ.Ms .+= dψ1.Ms .* α
             return dψ
         end
 
