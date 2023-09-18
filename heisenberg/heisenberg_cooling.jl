@@ -4,7 +4,7 @@ using JLD2
 using Revise
 using CircularCMPS
 
-hz = 1.5
+hz = 4.0
 hz = parse(Float64, ARGS[1])
 T, Wmat = xxz_af_cmpo(1; hz=hz)
 
@@ -50,7 +50,7 @@ end
 
 scattering, reweighted = CircularCMPS.half_chain_singular_values_testtool(ψL, ψ, β)
 
-fig, ax, hm = heatmap(log.(norm.(scattering.data)), colorrange=(-8, 0), colormap=:Blues)
+fig, ax, hm = heatmap(log.(norm.(scattering.data)), colorrange=(-9, 0), colormap=:Blues)
 Colorbar(fig[:, end+1], hm)
 @show fig
 
