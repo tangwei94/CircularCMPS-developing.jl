@@ -30,5 +30,5 @@ E11_χ8 = E1_χ8 + E1_χ8
 E12_χ4 = E1_χ4 + E2_χ4
 E12_χ8 = E1_χ8 + E2_χ8
 
-@save "multiboson/results/seperate_computation_$(c1)_$(c2)_$(μ1)_$(μ2).jld2" E_χ4=E12_χ4 E_χ8=E12_χ8
-@save "multiboson/results/seperate_computation_$(c1)_$(c1)_$(μ1)_$(μ1).jld2" E_χ4=E11_χ4 E_χ8=E11_χ8
+@save "multiboson/results/seperate_computation_$(c1)_$(c2)_$(μ1)_$(μ2).jld2" res1_χ4 res2_χ4 res1_χ8 res2_χ8 E_χ4=E12_χ4 E_χ8=E12_χ8
+#@save "multiboson/results/seperate_computation_$(c1)_$(c1)_$(μ1)_$(μ1).jld2" res1_χ4 res2_χ4 res1_χ8 res2_χ8 E_χ4=E11_χ4 E_χ8=E11_χ8

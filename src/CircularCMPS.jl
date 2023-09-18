@@ -52,7 +52,7 @@ export AbstractCMPO, CMPO, ln_ovlp, compress, direct_sum, W_mul, variance, free_
 export ising_cmpo, xxz_af_cmpo, xxz_fm_cmpo, heisenberg_j1j2_cmpo, rydberg_cmpo
 
 # entanglement.jl 
-export entanglement_entropy
+export half_chain_singular_values, entanglement_entropy
 
 # power_iteration.jl 
 export PowerMethod, power_iteration
