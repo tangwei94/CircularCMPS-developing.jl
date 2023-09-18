@@ -3,12 +3,8 @@
 *.jl.mem
 /docs/build/
 tmpdata*
-J1J2/dimer_phase*.jld2
-J1J2/cooling
-J1J2/cooling1
-J1J2/critical*.jld2
-J1J2/*result*/*.jld2
-J1J2/*deprecated*/*.jld2
+J1J2/*/data
+J1J2_critical/data
 heisenberg/results
 rydberg/results
 ising/results
