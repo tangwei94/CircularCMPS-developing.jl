@@ -10,18 +10,16 @@ T, Wmat = heisenberg_j1j2_cmpo(J1, J2)
 α = 2^(1/4)
 βs = 0.64 * α .^ (0:27)
 
-β = βs[end]
-@load "J1J2/cooling1/dimer_phase_beta$(β).jld2" f E var ψ
-
 function read_data(βs, prefix)
     EEs = Float64[]
     chis = Int[]
     ESs = [] 
     for β in βs
-        @load "J1J2/cooling1/$(prefix)$(β).jld2" ψ
+        @load "J1J2/gauged_cooling/data/$(prefix)$(β).jld2" ψ
         χ = dim(space(ψ))
-        SE = entanglement_entropy(ψ, β)
-        Λβ = real.(diag(CircularCMPS.half_chain_singular_values(ψ, β).data))
+        ψL = Wmat * ψ
+        SE = entanglement_entropy(ψL, ψ, β)
+        Λβ = real.(diag(half_chain_singular_values(ψL, ψ, β).data))
 
         push!(chis, χ)
         push!(EEs, SE)
@@ -31,23 +29,6 @@ function read_data(βs, prefix)
 end
 
 chis, EEs, ESs = read_data(βs, "dimer_phase_beta");
-
-T1s, Λs = Float64[], Float64[]
-for (Λ, β) in zip(ESs[end-11:end], βs[end-11:end])
-    #T1s = [T1s; (1:length(Λ)) .* 0.01 .+ 1/β]
-    T1s = [T1s; fill(1/β, length(Λ))]
-    Λs = [Λs; Λ]
-end
-
-for (ix, a) in enumerate(ESs[1])
-    @show ix, a
-end
-for (ix, a) in enumerate(ESs[end-6])
-    @show ix, a
-end
-for (ix, a) in enumerate(ESs[end])
-    @show ix, a
-end
 
 fig = Figure(backgroundcolor = :white, fontsize=18, resolution= (600, 1200))
 
@@ -73,8 +54,8 @@ ax3 = Axis(fig[3, 1],
         yscale = log10, 
         )
 ylims!(ax3, (1e-4, 1))
-scatter!(ax3, T1s, Λs, label=L"\text{cMPO, tol=}10^{-6}")
+scatter!(ax3, T1s, abs.(Λs) .+ 1e-16, label=L"\text{cMPO, tol=}10^{-6}")
 axislegend(ax3, position=:rb, framevisible=false)
 @show fig
 
-save("J1J2/J1J2_dimer_phase_ES_result_cooling1.pdf", fig)
+save("J1J2/gauged_cooling/J1J2_dimer_phase_ES_result_cooling.pdf", fig)

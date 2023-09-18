@@ -1,11 +1,11 @@
 using LinearAlgebra, TensorKit
-using CairoMakie
-using JLD2 
 using Revise
 using CircularCMPS
+using CairoMakie
+using JLD2 
 
 J1, J2 = 1, 0.5
-T, Wmat = heisenberg_j1j2_cmpo(J1, J2)
+T, Wmat = CircularCMPS.heisenberg_j1j2_cmpo_deprecated(J1, J2)
 
 χs = [3, 6, 9, 12]
 
@@ -28,6 +28,6 @@ for β in βs[end:-1:end-10]
         push!(Es, E)
         push!(vars, var)
         push!(ψs, ψ)
-        @save "J1J2/gauged-results/dimer_phase_beta$(β).jld2" fs Es vars ψs
+        @save "J1J2/deprecated-check-again/data/dimer_phase_beta$(β).jld2" fs Es vars ψs
     end
 end
