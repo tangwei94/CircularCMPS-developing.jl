@@ -24,14 +24,31 @@ end
 
 function half_chain_singular_values_testtool(ψL::CMPSData, ψR::CMPSData, β::Real)
     # importance of |ψA_i⟩: measure ⟨ψA_i|W_A|ψA_j⟩ after |ψA_i⟩ is properly normalized
-    # we expect ⟨ψA_i|W_A|ψA_j⟩ to decay with |i+j|: "consistency of importance"
     MLR = permute(finite_env(ψL*ψR, β/2)[1], (1, 3), (2, 4))
-    MRR = permute(finite_env(ψR*ψR, β/2)[1], (1, 3), (2, 4))
+    MAR = permute(finite_env(ψR*ψR, β/2)[1], (1, 3), (2, 4))
+    MBR = permute(finite_env(ψR*ψR, β/2)[1], (4, 2), (3, 1))
+    MAL = permute(finite_env(ψL*ψL, β/2)[1], (1, 3), (2, 4))
+    MBL = permute(finite_env(ψL*ψL, β/2)[1], (4, 2), (3, 1))
+
+    ΛAR, UAR = eigh(MAR)
+    CAR = sqrt(ΛAR) * UAR'
+    ΛBR, UBR = eigh(MBR)
+    CBR = UBR * sqrt(ΛBR)
+    CR = CAR * CBR 
+    UR, SR, _ = tsvd(CR)
+    invCAR = inv(CAR) 
     
-    ΛRR, URR = eigh(MRR)
-    scattering = URR' * MLR * URR
-    reweighted = sqrt(ΛRR) * scattering * sqrt(ΛRR) 
-    return scattering, reweighted 
+    ΛAL, UAL = eigh(MAL)
+    CAL = sqrt(ΛAL) * UAL'
+    ΛBL, UBL = eigh(MBL)
+    CBL = UBL * sqrt(ΛBL)
+    CL = CAL * CBL 
+    UL, SL, _ = tsvd(CL)
+    invCAL = inv(CAL) 
+    
+    normalized_MLR = UL' * invCAL' * MLR * invCAR * UR
+
+    return normalized_MLR, SL * normalized_MLR * SR
 end
 
 function entanglement_entropy(ψ::CMPSData, β::Real)

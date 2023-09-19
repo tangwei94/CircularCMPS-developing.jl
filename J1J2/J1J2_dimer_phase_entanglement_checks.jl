@@ -16,38 +16,36 @@ function show_analysis_results(ψL, ψ, β)
 
     χ2 = length(ψ.Q.data)
 
-    ΛLR = half_chain_singular_values(ψL, ψ, β)
-    ΛRR = half_chain_singular_values(ψ, β)
-    ΛLL = half_chain_singular_values(ψL, β)
+    #ΛRR = half_chain_singular_values(ψ, β)
+    #ΛLL = half_chain_singular_values(ψL, β)
+    #ΛRR_diag = diag(real.(ΛRR.data))
+    #ΛLL_diag = diag(real.(ΛLL.data))
 
-    ΛLR_diag = diag(real.(ΛLR.data)) 
-    ΛRR_diag = diag(real.(ΛRR.data))
-    ΛLL_diag = diag(real.(ΛLL.data))
+    scattering, reweighted = CircularCMPS.half_chain_singular_values_testtool(ψL, ψ, β);
 
-    scattering, reweighted_scattering = CircularCMPS.half_chain_singular_values_testtool(ψL, ψ, β)
+    scattering_norms = norm.(scattering.data)
+    scattering_norms /= maximum(scattering_norms)
+    reweighted_norms = norm.(reweighted.data)
+    reweighted_norms /= maximum(reweighted_norms)
+    fig1, ax, hm = heatmap(log10.(scattering_norms), colorrange=(-3, 0), colormap=:Blues)
+    Colorbar(fig1[:, end+1], hm)
+    fig2, ax, hm = heatmap(log10.(reweighted_norms), colorrange=(-6, 0), colormap=:Blues)
+    Colorbar(fig2[:, end+1], hm)
 
-    fig, ax, hm = heatmap(log10.(norm.(scattering.data)), colorrange=(-6, 1), colormap=:Blues)
-    Colorbar(fig[:, end+1], hm)
-    @show fig
-
-    function importance_meas(M)
+    function meas1(M)
         map(1:χ2) do ix0
             return sum(M[ix0, 1:end]) + sum(M[1:end, ix0])
         end
     end
 
-    fig2, ax2, _ = lines(log10.(importance_meas(norm.(scattering.data))))
-    scatter!(ax2, log10.(norm.(ΛRR_diag)), marker='x')
-    scatter!(ax2, log10.(norm.(ΛLL_diag)), marker='o')
+    fig3, ax2, _ = lines(log10.(meas1(scattering_norms)))
+    ax3 = Axis(fig3[2, 1])
+    lines!(ax3, log10.(meas1(reweighted_norms)))
+    #scatter!(ax3, log10.(norm.(ΛRR_diag)), marker='x')
+    #scatter!(ax3, log10.(norm.(ΛLL_diag)), marker='o')
 
-    ΛL, = eigh(scattering) 
-    #fig3, ax, hm = heatmap(log10.(norm.((U*sqrt(S)).data)), colorrange=(-4, 0), colormap=:Blues)
-    #Colorbar(fig3[:, end+1], hm)
-    #@show fig3
-     
-    return fig, fig2, diag(ΛL.data)
+    return fig1, fig2, fig3
 end
-
 
 β = 68.88623433758424;
 @load "J1J2/deprecated-check-again/data/dimer_phase_beta$(β).jld2" ψs 
@@ -61,13 +59,23 @@ end
 @load "J1J2/gauged_cooling/data/dimer_phase_beta$(β).jld2" ψ 
 ψL = Wmat * ψ;
 
-fig, fig2, λL = show_analysis_results(ψL, ψ, β);
+Λ1, U1 = eigen(Hermitian(Wmat1))
+α = 1
+G = U1 * Diagonal(sqrt.(norm.(Λ1)) .^ α) 
+
+G * Wmat * G' - Wmat1 |> norm
+ψ1 = convert(Matrix, inv(G')) * ψ;
+ψL1 = (G * Wmat * G') * ψ1;
+
+fig, fig2, fig3 = show_analysis_results(ψL, ψ, β);
 @show fig
 @show fig2
-@show λL
+fig, fig2, fig3 = show_analysis_results(ψL1, ψ1, β);
+@show fig
+@show fig2
+#@show fig3
 
-
-
+a = CircularCMPS.half_chain_singular_values_testtool(ψL, ψ, β) 
 
 
 #--->
