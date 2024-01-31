@@ -23,7 +23,6 @@ function half_chain_singular_values(ψL::CMPSData, ψR::CMPSData, β::Real)
 end
 
 function half_chain_singular_values_testtool(ψL::CMPSData, ψR::CMPSData, β::Real)
-    # importance of |ψA_i⟩: measure ⟨ψA_i|W_A|ψA_j⟩ after |ψA_i⟩ is properly normalized
     MLR = permute(finite_env(ψL*ψR, β/2)[1], (1, 3), (2, 4))
     MAR = permute(finite_env(ψR*ψR, β/2)[1], (1, 3), (2, 4))
     MBR = permute(finite_env(ψR*ψR, β/2)[1], (4, 2), (3, 1))
@@ -65,15 +64,17 @@ function entanglement_entropy(ψL::CMPSData, ψR::CMPSData, β::Real)
     return SA 
 end
 
-function suggest_χ(ψ::CMPSData, β::Real; tol::Real=1e-9, maxχ::Int=32, minχ::Int=2)
+function suggest_χ(Wmat::Matrix, ψ::CMPSData, β::Real; tol::Real=1e-9, maxχ::Int=32, minχ::Int=2)
     ΛA = half_chain_singular_values(ψ, β)
     SA = reverse(norm.(diag(ΛA.data)))
-    χ1 = min(floor(Int, sqrt(sum(SA .> tol))), maxχ)
-    χ1 = max(χ1, minχ)
-    err = 0 
-    if χ1^2 < length(SA)
-        err = SA[χ1^2 + 1]
-    end
 
-    return χ1, err 
+    ψL = Wmat * ψ
+    ΛA_LR = half_chain_singular_values(ψL, ψ, β)
+    SA_LR = reverse(norm.(diag(ΛA_LR.data)))
+
+    χ1 = min(floor(Int, sqrt(sum(SA .> tol))), maxχ)
+    χ2 = min(floor(Int, sqrt(sum(SA_LR .> tol))), maxχ)
+    χ = max(χ1, χ2, minχ)
+
+    return χ 
 end

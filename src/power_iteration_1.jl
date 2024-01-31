@@ -1,6 +1,6 @@
 @with_kw struct PowerMethod 
     maxiter_power::Int = 200
-    spect_shifting::Real = 1 # useful when the system breaks the translational symmetry at low temperatures; otherwise it can be zero
+    spect_shifting::Real = 0 # useful when the system breaks the translational symmetry at low temperatures; otherwise it can be zero
     maxχ::Int = 40
     tol_fidel::Real = 1e-8 # The tolerance for fidelity is preferably not greater than 1e-8, otherwise the results will be inaccurate.
     tol_ES::Real = 1e-7 # For each tol_ES, run the cooling process from starting point again, instead of using the previous result as the initial state.
@@ -29,8 +29,8 @@ function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData
             Tψ = direct_sum(Tψ, ψ; α=log(alg.spect_shifting)/β/2)
         end
 
-        χ, err = suggest_χ(Tψ, β; tol=alg.tol_ES, maxχ=alg.maxχ, minχ=get_χ(ψ))
-        printstyled("[ power_iteration: next χ: $(χ), possible error: $(err) \n"; bold=true)
+        χ = suggest_χ(Wmat, Tψ, β; tol=alg.tol_ES, maxχ=alg.maxχ, minχ=get_χ(ψ))
+        printstyled("[ power_iteration: next χ: $(χ) \n"; bold=true)
 
         tol_compress = max(min(0.1*abs(fidel), 1e-6), 0.1*alg.tol_fidel) # gradually lowering the tolerance for compression to save time
         ψ1 = compress(Tψ, χ, β; init=ψ, maxiter=alg.maxiter_compress, verbosity=alg.verbosity, tol=tol_compress)
