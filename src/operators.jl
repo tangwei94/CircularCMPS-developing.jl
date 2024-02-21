@@ -37,11 +37,12 @@ function point_interaction(ψ::CMPSData)
     Oψ = Rs .* Rs
     return sum(K_otimes.(Oψ, Oψ))
 end
-function point_interaction(ψ::CMPSData, cs::Matrix)
-    _, Rs = get_matrices(ψ) 
-    R2s = Rs .* Rs 
-    return sum(K_otimes.(R2s, cs * R2s))
-end
+# error
+#function point_interaction(ψ::CMPSData, cs::Matrix)
+    #_, Rs = get_matrices(ψ) 
+    #R2s = Rs .* Rs 
+    #return sum(K_otimes.(R2s, cs * R2s))
+#end
 function point_interaction(ψ::CMPSData, index::Integer)
     _, Rs = get_matrices(ψ) 
     Oψ = Rs[index] * Rs[index]
@@ -53,8 +54,8 @@ function point_interaction(ψ::CMPSData, index1::Integer, index2::Integer)
     end
 
     _, Rs = get_matrices(ψ)
-    Oψ_1 = Rs[index1] * Rs[index1]
-    Oψ_2 = Rs[index2] * Rs[index2]
+    Oψ_1 = Rs[index1] * Rs[index2]
+    Oψ_2 = Rs[index1] * Rs[index2]
     return K_otimes(Oψ_1, Oψ_2) 
 end
 
