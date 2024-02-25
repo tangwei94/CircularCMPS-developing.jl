@@ -7,11 +7,10 @@ using Revise
 using CircularCMPS
 
 c1, μ1 = 1., 2.
-c2, μ2 = parse(Float64, ARGS[1]), parse(Float64, ARGS[2])
-c12 = parse(Float64, ARGS[3]) 
-
 c2, μ2 = 1., 2.
-c12 = 0.
+c12 = 0.5
+#c2, μ2 = parse(Float64, ARGS[1]), parse(Float64, ARGS[2])
+#c12 = parse(Float64, ARGS[3]) 
 
 Hm = MultiBosonLiebLiniger([c1 c12; c12 c2], [μ1, μ2], Inf)
 
@@ -39,8 +38,6 @@ res3_wp = ground_state(Hm, ϕ3; do_preconditioning=true, maxiter=20000);
 
 @save "multiboson/results/P_preconditioned_randinit_$(c1)_$(c2)_$(c12)_$(μ1)_$(μ2).jld2" res1_wp res2_wp res3_wp
 
-#c2, μ2 = 1.5, 2.5
-#c12 = 0.5
 @load "multiboson/results/P_preconditioned_$(c1)_$(c2)_$(c12)_$(μ1)_$(μ2).jld2" res1_wp res2_wp res3_wp
 res1_wp_P, res2_wp_P, res3_wp_P = res1_wp, res2_wp, res3_wp
 @load "multiboson/results/P_preconditioned_randinit_$(c1)_$(c2)_$(c12)_$(μ1)_$(μ2).jld2" res1_wp res2_wp res3_wp
