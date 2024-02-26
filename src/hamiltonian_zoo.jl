@@ -287,3 +287,44 @@ function ground_state(H::MultiBosonLiebLiniger, ψ0::MultiBosonCMPSData_P; do_pr
         error("finite size not implemented yet.")
     end
 end
+
+"""
+    ground_state(H::MultiBosonLiebLiniger, ψ0::CMPSData; Λ::Real=1.0)
+
+Find the ground state of the MultiBosonLiebLiniger model with the given Hamiltonian `H` and the initial state `ψ0`. 
+The multi-boson cMPS is parametrized with no regularity conditions. This allows a more efficient optimization. 
+The regularity condition is achieved via an additional Lagrangian multiplier term `Λ [ψ1, ψ2]† [ψ1, ψ2]`.
+"""
+function ground_state(H::MultiBosonLiebLiniger, ψ0::CMPSData; Λs::Vector{<:Real}=2.0 .^ (1:10))
+    if H.L == Inf
+        results = map(Λs) do Λ
+            function fE_inf(ψ::CMPSData)
+                OH = kinetic(ψ) + H.cs[1,1]* point_interaction(ψ, 1) + H.cs[2,2]* point_interaction(ψ, 2) + H.cs[1,2] * point_interaction(ψ, 1, 2) + H.cs[2,1] * point_interaction(ψ, 2, 1) - H.μs[1] * particle_density(ψ, 1) - H.μs[2] * particle_density(ψ, 2) + lagrangian_multiplier(ψ, 1, 2, Λ) 
+                TM = TransferMatrix(ψ, ψ)
+                envL = permute(left_env(TM), (), (1, 2))
+                envR = permute(right_env(TM), (2, 1), ()) 
+                return real(tr(envL * OH * envR) / tr(envL * envR))
+            end
+            printstyled("infinite system, Λ = $Λ \n"; color=:red)
+
+            res = minimize(fE_inf, ψ0, CircularCMPSRiemannian(1000, 1e-9, 2))
+            ψ0 = res[1]
+            return res
+        end
+        return results, Λs
+    else
+        results = map(Λs) do Λ
+            function fE_finiteL(ψ::CMPSData)
+                OH = kinetic(ψ) + H.cs[1,1]* point_interaction(ψ, 1) + H.cs[2,2]* point_interaction(ψ, 2) + H.cs[1,2] * point_interaction(ψ, 1, 2) + H.cs[2,1] * point_interaction(ψ, 2, 1) - H.μs[1] * particle_density(ψ, 1) - H.μs[2] * particle_density(ψ, 2) + lagrangian_multiplier(ψ, 1, 2, Λ) 
+                expK, _ = finite_env(K_mat(ψ, ψ), H.L)
+                return real(tr(expK * OH))
+            end 
+
+            printstyled("finite system of size $(H.L), Λ = $Λ \n"; color=:red)
+            res = minimize(fE_finiteL, ψ0, CircularCMPSRiemannian(1000, 1e-9, 2))
+            ψ0 = res[1]
+            return res
+        end
+        return results, Λs
+    end
+end
