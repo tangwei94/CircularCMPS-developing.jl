@@ -3,7 +3,7 @@
     spect_shifting::Real = 0 # useful when the system breaks the translational symmetry at low temperatures; otherwise it can be zero
     maxχ::Int = 40
     tol_fidel::Real = 1e-8 # The tolerance for fidelity is preferably not greater than 1e-8, otherwise the results will be inaccurate.
-    tol_ES::Real = 1e-7 # For each tol_ES, run the cooling process from starting point again, instead of using the previous result as the initial state.
+    tol_ES::Real = 1e-10 # For each tol_ES, run the cooling process from starting point again, instead of using the previous result as the initial state.
     maxiter_compress::Int = 250
     verbosity::Int = 1
 end
@@ -41,7 +41,7 @@ function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData
         f = free_energy(T, ψL, ψ, β)
         E = energy(T, ψL, ψ, β)
         var = variance(T, ψ, β)
-        printstyled("[ power_iteration: ix, f, E, var, fidel $(ix) $(f) $(E) $(var) $(fidel) \n"; color=:red)
+        printstyled("[ power_iteration: ix, f, E, var, fidel: $(ix) $(f) $(E) $(var) $(fidel) \n"; color=:red)
 
         ix > 2 && abs(fidel) < alg.tol_fidel && break
     end
