@@ -57,6 +57,9 @@ export half_chain_singular_values, entanglement_entropy
 # power_iteration.jl 
 export PowerMethod, power_iteration
 
+# variational_optim.jl 
+export VariationalOptim, leading_boundary
+
 # hamiltonian_zoo.jl
 export AbstractHamiltonian, SingleBosonLiebLiniger, MultiBosonLiebLiniger, ground_state
 
@@ -80,5 +83,6 @@ include("cmpo_zoo.jl");
 include("entanglement.jl");
 include("power_iteration.jl")
 include("power_iteration_1.jl")
+include("variational_optim.jl")
 
 end
