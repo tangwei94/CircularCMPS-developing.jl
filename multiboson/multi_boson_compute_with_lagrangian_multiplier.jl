@@ -17,6 +17,8 @@ Hm = MultiBosonLiebLiniger([c1 c12; c12 c2], [μ1, μ2], Inf)
 Λs = 2 .^ (1:10)
 χ1, χ2, χ3 = 4, 8, 16
 
+################# computation ####################
+
 ϕ1 = CMPSData(rand, χs[1], 2)
 res_lm, _ = ground_state(Hm, ϕ1; Λs=Λs);
 @save "multiboson/results/lagrangian_multiplier_$(c1)_$(c2)_$(c12)_$(μ1)_$(μ2)_$(χ1).jld2" res_lm Λs
@@ -28,15 +30,21 @@ res_lm, _ = ground_state(Hm, ϕ1; Λs=Λs);
 ϕ1 = expand(res_lm[1][1], χ3, 100) 
 res_lm, _ = ground_state(Hm, ϕ1; Λs=Λs);
 @save "multiboson/results/lagrangian_multiplier_$(c1)_$(c2)_$(c12)_$(μ1)_$(μ2)_$(χ3).jld2" res_lm Λs
+
+################# analysis ####################
+
+@load "multiboson/results/lagrangian_multiplier_$(c1)_$(c2)_$(c12)_$(μ1)_$(μ2)_$(χ1).jld2" res_lm  
+res1_lm = res_lm
+
+### energy and gradient norm, lagrangian multiplier, with respect to χ, Λ 
+
+# TODO. analyze the expectation value of the energy and the gradient norm, lagrangian multiplier term
+# TODO. check whether the Rs are diagonalizable. if true use these results as an initalization?
+
 ################# outdated below ####################
-
-
-@save "multiboson/results/lagrangian_multiplier_$(c1)_$(c2)_$(c12)_$(μ1)_$(μ2).jld2" res1_lm res2_lm res3_lm
-@load "multiboson/results/lagrangian_multiplier_$(c1)_$(c2)_$(c12)_$(μ1)_$(μ2).jld2" res1_lm res2_lm res3_lm
-
 @load "multiboson/results/preconditioned_$(c1)_$(c2)_$(c12)_$(μ1)_$(μ2).jld2" res1_lm res2_lm res3_lm
 @load "multiboson/results/seperate_computation_$(c1)_$(c2)_$(μ1)_$(μ2).jld2" E_χ4 E_χ8
-if c12 == 0.0
+if abs(c12) < 1e-12
         Esep_χ4 = E_χ4
         Esep_χ8 = E_χ8 
 else 
@@ -44,7 +52,6 @@ else
         Esep_χ8 = missing
 end
 Es_lm, gnorms_lm = res3_lm[5][:, 1], res3_lm[5][:, 2]
-Es_wop, gnorms_wop = res3_wop[5][:, 1], res3_wop[5][:, 2]
 
 fig = Figure(backgroundcolor = :white, fontsize=14, resolution= (400, 600))
 
