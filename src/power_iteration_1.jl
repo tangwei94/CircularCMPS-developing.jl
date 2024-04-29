@@ -2,6 +2,7 @@
     maxiter_power::Int = 200
     spect_shifting::Real = 0 # useful when the system breaks the translational symmetry at low temperatures; otherwise it can be zero
     maxχ::Int = 40
+    fixχ::Int = -1
     tol_fidel::Real = 1e-8 # The tolerance for fidelity is preferably not greater than 1e-8, otherwise the results will be inaccurate.
     tol_ES::Real = 1e-10 # For each tol_ES, run the cooling process from starting point again, instead of using the previous result as the initial state.
     maxiter_compress::Int = 250
@@ -14,6 +15,7 @@ function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData
         maxiter_power = $(alg.maxiter_power) 
         spect_shifting = $(alg.spect_shifting)
         maxχ = $(alg.maxχ)
+        fixχ = $(alg.fixχ)
         tol_fidel=$(alg.tol_fidel)
         tol_ES=$(alg.tol_ES)
         verbosity=$(alg.verbosity)
@@ -29,7 +31,12 @@ function power_iteration(T::CMPO, Wmat::Matrix{<:Number}, β::Real, ψ::CMPSData
             Tψ = direct_sum(Tψ, ψ; α=log(alg.spect_shifting)/β/2)
         end
 
-        χ = suggest_χ(Wmat, Tψ, β; tol=alg.tol_ES, maxχ=alg.maxχ, minχ=get_χ(ψ))
+        if alg.fixχ < 0
+            χ = suggest_χ(Wmat, Tψ, β; tol=alg.tol_ES, maxχ=alg.maxχ, minχ=get_χ(ψ))
+        else 
+            χ = alg.fixχ
+        end
+
         printstyled("[ power_iteration: next χ: $(χ) \n"; bold=true)
 
         tol_compress = max(min(0.1*abs(fidel), 1e-6), 0.1*alg.tol_fidel) # gradually lowering the tolerance for compression to save time

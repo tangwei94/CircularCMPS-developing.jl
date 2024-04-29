@@ -75,7 +75,6 @@ function suggest_χ(Wmat::Matrix, ψ::CMPSData, β::Real; tol::Real=1e-9, maxχ:
     χ1 = min(ceil(Int, sqrt(sum(SA .> tol))), maxχ)
     χ2 = min(ceil(Int, sqrt(sum(SA_LR .> tol))), maxχ)
     χ = max(χ1, χ2, minχ)
-    @show SA_LR[χ^2+1]
 
     return χ 
 end
