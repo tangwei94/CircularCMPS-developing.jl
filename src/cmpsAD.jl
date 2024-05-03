@@ -62,27 +62,30 @@ end
 """
 function ChainRulesCore.rrule(::typeof(get_matrices), ψ::CMPSData)
     fwd = get_matrices(ψ)
+    d = get_d(ψ)
     Q0 = zero(ψ.Q)
     R0s = [zero(R) for R in ψ.Rs]
     function get_matrices_pushback(f̄wd)
         (Q̄, R̄s) = f̄wd
         (Q̄ isa ZeroTangent) && (Q̄ = Q0)
-        (R̄s isa ZeroTangent) && (R̄s = R0s)
-        return NoTangent(), CMPSData(Q̄, R̄s)
+        for ix in 1:d
+            (R̄s[ix] isa ZeroTangent) && (R̄s[ix] = R0s[ix])
+        end
+        return NoTangent(), CMPSData(Q̄, typeof(R0s)(R̄s))
     end
     return fwd, get_matrices_pushback
 end
 
 """
-    rrule(::typeof(CMPSData), Q::MPSBondTensor, R::MPSTensor, L::Real)
+    rrule(::Type{CMPSData}, Q::MPSBondTensor, Rs::Vector{MPSBondTensor})
 
     rrule for the constructor of `cmps`.
 """
-function ChainRulesCore.rrule(::typeof(CMPSData), Q::MPSBondTensor, R::MPSTensor)
+function ChainRulesCore.rrule(::Type{CMPSData}, Q::MPSBondTensor, Rs::Vector{<:MPSBondTensor})
     function cmps_pushback(f̄wd)
-        return NoTangent(), f̄wd.Q, f̄wd.R
+        return NoTangent(), f̄wd.Q, f̄wd.Rs
     end
-    return CMPSData(Q, R), cmps_pushback
+    return CMPSData(Q, Rs), cmps_pushback
 end
 
 """
@@ -137,23 +140,30 @@ function ChainRulesCore.rrule(::typeof(finite_env), K::TensorMap{ComplexSpace}, 
     Ws = Ws .- ln_of_norm / L
 
     function finite_env_pushback(f̄wd)
-        ēxpK, l̄n_norm = f̄wd # TODO. now only include ēxpK. add ln_norm pushback 
-        if W.data isa TensorKit.SortedVectorDict
-            # TODO. symmetric tensor?
-            error("symmetric tensor. not implemented")
-        end
-        function coeff(a::Number, b::Number) 
-            if a ≈ b
-                return L*exp(a*L)
-            else 
-                return (exp(a*L) - exp(b*L)) / (a - b)
-            end
-        end
-        M = UR' * ēxpK * UL'
-        M1 = similar(M)
-        copyto!(M1.data, M.data .* coeff.(Ws', conj.(Ws)))
-        K̄ = UL' * M1 * UR' - L * tr(ēxpK * expK') * expK'
+        ēxpK, l̄n_norm = f̄wd 
+       
+        K̄ = zero(K)
 
+        if ēxpK != ZeroTangent()
+            if W.data isa TensorKit.SortedVectorDict
+                # TODO. symmetric tensor
+                error("symmetric tensor. not implemented")
+            end
+            function coeff(a::Number, b::Number) 
+                if a ≈ b
+                    return L*exp(a*L)
+                else 
+                    return (exp(a*L) - exp(b*L)) / (a - b)
+                end
+            end
+            M = UR' * ēxpK * UL'
+            M1 = similar(M)
+            copyto!(M1.data, M.data .* coeff.(Ws', conj.(Ws)))
+            K̄ += UL' * M1 * UR' - L * tr(ēxpK * expK') * expK'
+        end
+        if l̄n_norm != ZeroTangent()
+            K̄ += l̄n_norm * L * expK'
+        end
         return NoTangent(), K̄, NoTangent()
     end 
     return (expK, ln_of_norm), finite_env_pushback

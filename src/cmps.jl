@@ -22,14 +22,24 @@ end
 
 # operations on the data. not on the cMPS
 Base.:+(ψ::CMPSData, ϕ::CMPSData) = CMPSData(ψ.Q + ϕ.Q, ψ.Rs .+ ϕ.Rs)
+Base.:+(ψ::CMPSData, ϕ::Base.RefValue) = (ψ + CMPSData(ϕ[].Q, ϕ[].Rs)) # TODO. used to fix autodiff in leading_boundary_cmps. fix _fg in optimalg
 Base.:-(ψ::CMPSData, ϕ::CMPSData) = CMPSData(ψ.Q - ϕ.Q, ψ.Rs .- ϕ.Rs)
 Base.:*(ψ::CMPSData, x::Number) = CMPSData(ψ.Q * x, ψ.Rs .* x)
 Base.:*(x::Number, ψ::CMPSData) = CMPSData(ψ.Q * x, ψ.Rs .* x)
+LinearAlgebra.dot(ψ1::CMPSData, ψ2::CMPSData) = dot(ψ1.Q, ψ2.Q) + sum(dot.(ψ1.Rs, ψ2.Rs))
+LinearAlgebra.norm(ψ::CMPSData) = sqrt(norm(dot(ψ, ψ)))
 
 function Base.similar(ψ::CMPSData) 
     Q = similar(ψ.Q)
     Rs = [similar(R) for R in ψ.Rs]
     return CMPSData(Q, Rs)
+end
+
+function randomize!(ψ::CMPSData)
+    randomize!(ψ.Q)
+    for R in ψ.Rs
+        randomize!(R)
+    end
 end
 
 function Base.zero(ψ::CMPSData) 
@@ -41,10 +51,7 @@ end
 @inline get_χ(ψ::CMPSData) = dim(_firstspace(ψ.Q))
 @inline get_d(ψ::CMPSData) = length(ψ.Rs)
 TensorKit.space(ψ::CMPSData) = _firstspace(ψ.Q)
-#function Base.iterate(ψ::CMPSData, i=1)
-    #data = [ψ.Q, ψ.Rs]
-    #(i > length(data)) ? nothing : (data[i],i+1)
-#end
+TensorKit.norm(ϕ::CMPSData) =  sqrt(norm(ϕ.Q)^2 + norm(ϕ.Rs)^2)
 
 get_matrices(ψ::CMPSData) = (ψ.Q, ψ.Rs)
 
@@ -53,8 +60,6 @@ get_matrices(ψ::CMPSData) = (ψ.Q, ψ.Rs)
     transfer_matrix(ϕ::CMPSData, ψ::CMPSData) where S<:EuclideanSpace
 
     The transfer matrix for <ϕ|ψ>.
-    target at right vector. 
-    T = I + ϵK. returns K<ϕ|ψ>.
     target at right vector. 
     T = I + ϵK. returns K
 """
@@ -239,7 +244,7 @@ function finite_env(K::TensorMap{ComplexSpace}, L::Real)
 end
 
 """
-    rescale(ψ::CMPSData, lnα::Real)
+    rescale(ψ::CMPSData, lnα::Real, L::Real)
 
     rescale the cMPS: ψ -> exp(lnα) * ψ
 """

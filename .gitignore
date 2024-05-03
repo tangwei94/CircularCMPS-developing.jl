@@ -3,3 +3,14 @@
 *.jl.mem
 /docs/build/
 tmpdata*
+J1J2/*/data
+J1J2/*.pdf
+heisenberg_FMXY/*/data
+J1J2_critical/data
+J1J2_critical/*.pdf
+heisenberg/results
+heisenberg/*.pdf
+rydberg/results
+ising/results
+multiboson/results
+xxz/*.jld2

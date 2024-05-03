@@ -107,20 +107,3 @@ end
 
     @test norm(grad_fin - grad_auto) < α
 end
-
-#ϕ = ψ
-#E, gϕ = fgE(ϕ)
-#dϕ = precondition(ϕ, gϕ)
-#α = 1e-3
-#Δα = 1e-6
-#ϕ0, _ = retract(ϕ, dϕ, α)
-#ϕ1, _ = retract(ϕ, dϕ, α-Δα)
-#ϕ2, _ = retract(ϕ, dϕ, α+Δα)
-#
-#E0, gϕ0 = fgE(ϕ0)
-#E1, gϕ1 = fgE(ϕ1)
-#E2, gϕ2 = fgE(ϕ2)
-#
-#(E2 - E1) / (2*Δα)
-#
-#inner(ϕ0, gϕ0, dϕ)
